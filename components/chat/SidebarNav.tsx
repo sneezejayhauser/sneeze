@@ -11,7 +11,12 @@ export default function SidebarNav() {
       label: "Chat",
       icon: (
         <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          <path
+            d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+          />
         </svg>
       ),
     },
@@ -20,24 +25,35 @@ export default function SidebarNav() {
       label: "Agent",
       icon: (
         <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+          <polyline
+            points="16 18 22 12 16 6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+          />
+          <polyline
+            points="8 6 2 12 8 18"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+          />
         </svg>
       ),
     },
   ];
 
   return (
-    <nav className="px-2 pb-2 space-y-1">
+    <nav className="space-y-1 px-2 pb-2">
       {items.map((item) => {
         const isActive = activeView === item.key;
         return (
           <button
             key={item.key}
             onClick={() => setActiveView(item.key)}
-            className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+            className={`flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors ${
               isActive
-                ? "bg-sky-500/20 text-sky-400"
-                : "text-slate-300 hover:text-white hover:bg-slate-700/60"
+                ? "border-l-2 border-[var(--chat-accent)] bg-[var(--chat-bg3)] text-[var(--chat-text)]"
+                : "border-l-2 border-transparent text-[var(--chat-text2)] hover:bg-[var(--chat-bg3)] hover:text-[var(--chat-text)]"
             }`}
           >
             {item.icon}

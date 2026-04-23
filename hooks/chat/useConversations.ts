@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import type { ToolRun } from "@/utils/chat/tools";
 
 export interface ConversationMessage {
   role: "user" | "assistant" | "system";
@@ -11,6 +12,7 @@ export interface ConversationMessage {
     name: string;
     type: string;
   }>;
+  toolRuns?: ToolRun[];
 }
 
 export interface Conversation {

@@ -3,11 +3,12 @@
 import { useEffect, useRef } from "react";
 import Message from "./Message";
 import type { ConversationMessage } from "@/hooks/chat/useConversations";
-import type { Attachment } from "@/utils/chat/buildMessages";
+import type { ToolRun } from "@/utils/chat/tools";
 
 interface MessageListProps {
   messages: ConversationMessage[];
   streamingContent?: string;
+  streamingToolRuns?: ToolRun[];
   onRegenerate?: (index: number) => void;
   onArtifactClick?: (id: string) => void;
 }
@@ -15,6 +16,7 @@ interface MessageListProps {
 export default function MessageList({
   messages,
   streamingContent,
+  streamingToolRuns,
   onRegenerate,
   onArtifactClick,
 }: MessageListProps) {
@@ -22,31 +24,36 @@ export default function MessageList({
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, streamingContent]);
+  }, [messages, streamingContent, streamingToolRuns]);
 
   return (
-    <div className="flex-1 overflow-y-auto chat-scrollbar px-4 py-6 space-y-5">
-      {messages.map((msg, idx) => (
+    <div className="chat-scrollbar flex-1 space-y-5 overflow-y-auto px-4 py-6 md:px-6">
+      {messages.map((message, index) => (
         <Message
-          key={idx}
-          role={msg.role}
-          content={msg.content}
-          attachments={msg.attachments as Attachment[] | undefined}
+          key={`${message.role}-${index}-${message.content.slice(0, 12)}`}
+          role={message.role}
+          content={message.content}
+          attachments={message.attachments}
+          toolRuns={message.toolRuns}
           onRegenerate={
-            msg.role === "assistant" && onRegenerate
-              ? () => onRegenerate(idx)
+            message.role === "assistant" && onRegenerate
+              ? () => onRegenerate(index)
               : undefined
           }
           onArtifactClick={onArtifactClick}
         />
       ))}
-      {streamingContent && (
+
+      {(streamingContent || (streamingToolRuns && streamingToolRuns.length > 0)) && (
         <Message
           role="assistant"
-          content={streamingContent}
+          content={streamingContent ?? ""}
+          toolRuns={streamingToolRuns}
+          isStreaming
           onArtifactClick={onArtifactClick}
         />
       )}
+
       <div ref={bottomRef} />
     </div>
   );
