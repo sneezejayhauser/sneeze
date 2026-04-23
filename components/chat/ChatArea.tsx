@@ -5,7 +5,7 @@ import { useChatContext } from "@/context/ChatContext";
 import { useConversations } from "@/hooks/chat/useConversations";
 import { useStreaming } from "@/hooks/chat/useStreaming";
 import { useTools } from "@/hooks/chat/useTools";
-import { buildMessages } from "@/utils/chat/buildMessages";
+import { buildMessages, buildSystemPrompt } from "@/utils/chat/buildMessages";
 import { parseArtifacts } from "@/utils/chat/parseArtifacts";
 import type { Attachment } from "@/utils/chat/buildMessages";
 import TitleBar from "./TitleBar";
@@ -16,8 +16,15 @@ import ArtifactPanel from "./ArtifactPanel";
 import type { Artifact } from "@/utils/chat/parseArtifacts";
 
 export default function ChatArea() {
-  const { apiBaseUrl, apiKey, currentConversationId, settings, setCurrentConversationId } =
-    useChatContext();
+  const {
+    apiBaseUrl,
+    apiKey,
+    currentConversationId,
+    settings,
+    setCurrentConversationId,
+    defaultSystemPrompt,
+    availableSkillIds,
+  } = useChatContext();
   const { conversations, createConversation, updateConversation } = useConversations();
   const {
     content: streamingContent,
@@ -60,7 +67,11 @@ export default function ChatArea() {
             : existing?.title,
       });
 
-      const systemPrompt = settings.systemPrompt;
+      const systemPrompt = buildSystemPrompt(
+        defaultSystemPrompt,
+        settings.systemPrompt,
+        availableSkillIds
+      );
       const payloadMessages = systemPrompt
         ? [{ role: "system" as const, content: systemPrompt }, ...nextMessages]
         : nextMessages;
@@ -86,6 +97,8 @@ export default function ChatArea() {
       createConversation,
       updateConversation,
       settings.systemPrompt,
+      defaultSystemPrompt,
+      availableSkillIds,
       startStream,
       apiBaseUrl,
       apiKey,
@@ -107,7 +120,11 @@ export default function ChatArea() {
       const messagesUpTo = conversation.messages.slice(0, index);
       updateConversation(conversation.id, { messages: messagesUpTo });
 
-      const systemPrompt = settings.systemPrompt;
+      const systemPrompt = buildSystemPrompt(
+        defaultSystemPrompt,
+        settings.systemPrompt,
+        availableSkillIds
+      );
       const payloadMessages = systemPrompt
         ? [{ role: "system" as const, content: systemPrompt }, ...messagesUpTo]
         : messagesUpTo;
@@ -133,6 +150,8 @@ export default function ChatArea() {
     [
       conversation,
       settings.systemPrompt,
+      defaultSystemPrompt,
+      availableSkillIds,
       startStream,
       apiBaseUrl,
       apiKey,
@@ -165,6 +184,7 @@ export default function ChatArea() {
           messages={conversation.messages}
           streamingContent={!done ? streamingContent : undefined}
           streamingToolRuns={!done ? toolRuns : undefined}
+          isStreaming={!done}
           onRegenerate={handleRegenerate}
           onArtifactClick={handleArtifactClick}
         />

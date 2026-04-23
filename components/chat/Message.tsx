@@ -19,7 +19,7 @@ interface MessageProps {
   onArtifactClick?: (id: string) => void;
 }
 
-function AssistantAvatar() {
+export function AssistantAvatar() {
   return (
     <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--chat-bg2)]">
       <svg className="h-4 w-4" viewBox="0 0 64 64" fill="none" aria-hidden="true">
@@ -128,6 +128,13 @@ export default function Message({
                 {content}
               </ReactMarkdown>
               {isStreaming && <span className="chat-streaming-cursor">▍</span>}
+              {isStreaming && (
+                <div className="mt-1 flex gap-1">
+                  <div className="h-1 w-1 animate-[chat-typing-dot_1.4s_infinite_both] rounded-full bg-[var(--chat-accent)]/50" />
+                  <div className="h-1 w-1 animate-[chat-typing-dot_1.4s_infinite_both_0.2s] rounded-full bg-[var(--chat-accent)]/50" />
+                  <div className="h-1 w-1 animate-[chat-typing-dot_1.4s_infinite_both_0.4s] rounded-full bg-[var(--chat-accent)]/50" />
+                </div>
+              )}
             </div>
           )}
 
