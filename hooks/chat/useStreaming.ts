@@ -7,6 +7,7 @@ import {
   getToolProgressLabel,
   parseToolArguments,
   toOpenAITools,
+  type SandboxExecFunction,
   type Tool,
   type ToolCallInfo,
   type ToolRun,
@@ -46,6 +47,8 @@ interface StartStreamResult {
   content: string;
   toolRuns: ToolRun[];
 }
+
+const SANDBOX_TOOL_NAMES = new Set(["run_python", "run_bash", "write_file"]);
 
 function parseSseLines(chunk: string): string[] {
   return chunk
@@ -200,7 +203,8 @@ export function useStreaming() {
       model: string,
       apiBaseUrl: string,
       apiKey: string,
-      tools: Tool[]
+      tools: Tool[],
+      sandboxExec?: SandboxExecFunction
     ): Promise<StartStreamResult> => {
       setState({
         content: "",
@@ -281,8 +285,11 @@ export function useStreaming() {
               }));
 
               const tool = getToolByName(toolCall.name);
+              const needsSandbox = SANDBOX_TOOL_NAMES.has(toolCall.name);
+              const execFn = needsSandbox ? sandboxExec : undefined;
+
               const result = tool
-                ? await tool.execute(args)
+                ? await tool.execute(args, execFn)
                 : `Could not run tool: ${toolCall.name}`;
 
               const doneTool: ToolRun = {

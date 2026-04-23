@@ -13,6 +13,8 @@ export interface ChatContextValue {
   activeView: "chat" | "agent";
   currentConversationId: string | null;
   settings: ChatSettings;
+  defaultSystemPrompt: string;
+  availableSkillIds: string[];
   setActiveView: (view: "chat" | "agent") => void;
   setCurrentConversationId: (id: string | null) => void;
   setSettings: (settings: ChatSettings) => void;
@@ -52,9 +54,17 @@ interface ChatProviderProps {
   children: ReactNode;
   apiBaseUrl: string;
   apiKey: string;
+  defaultSystemPrompt: string;
+  availableSkillIds: string[];
 }
 
-export function ChatProvider({ children, apiBaseUrl, apiKey }: ChatProviderProps) {
+export function ChatProvider({ 
+  children, 
+  apiBaseUrl, 
+  apiKey,
+  defaultSystemPrompt,
+  availableSkillIds,
+}: ChatProviderProps) {
   const [activeView, setActiveViewState] = useState<"chat" | "agent">("chat");
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const [settings, setSettingsState] = useState<ChatSettings>(loadSettings);
@@ -76,6 +86,8 @@ export function ChatProvider({ children, apiBaseUrl, apiKey }: ChatProviderProps
         activeView,
         currentConversationId,
         settings,
+        defaultSystemPrompt,
+        availableSkillIds,
         setActiveView,
         setCurrentConversationId,
         setSettings,

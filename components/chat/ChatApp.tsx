@@ -16,15 +16,26 @@ function ChatBody() {
   );
 }
 
+interface ChatAppProps {
+  apiBaseUrl: string;
+  apiKey: string;
+  defaultSystemPrompt: string;
+  availableSkillIds: string[];
+}
+
 export default function ChatApp({
   apiBaseUrl,
   apiKey,
-}: {
-  apiBaseUrl: string;
-  apiKey: string;
-}) {
+  defaultSystemPrompt,
+  availableSkillIds,
+}: ChatAppProps) {
   return (
-    <ChatProvider apiBaseUrl={apiBaseUrl} apiKey={apiKey}>
+    <ChatProvider
+      apiBaseUrl={apiBaseUrl}
+      apiKey={apiKey}
+      defaultSystemPrompt={defaultSystemPrompt}
+      availableSkillIds={availableSkillIds}
+    >
       <div className="flex h-full w-full">
         <ChatBody />
       </div>

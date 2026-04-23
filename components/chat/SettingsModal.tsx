@@ -15,10 +15,15 @@ const TOOL_OPTIONS: Array<{ key: ToolName; label: string }> = [
   { key: "get_current_time", label: "Get Current Time" },
   { key: "calculate", label: "Calculator" },
   { key: "read_url", label: "Read URL" },
+  { key: "read_skill", label: "Read Skill" },
+  { key: "list_skills", label: "List Skills" },
+  { key: "run_python", label: "Run Python" },
+  { key: "run_bash", label: "Run Bash" },
+  { key: "write_file", label: "Write File" },
 ];
 
 export default function SettingsModal({ onClose }: SettingsModalProps) {
-  const { apiBaseUrl, settings, setSettings } = useChatContext();
+  const { apiBaseUrl, settings, setSettings, availableSkillIds } = useChatContext();
   const { clearAll } = useConversations();
   const { toolSettings, setToolSettings } = useTools();
 
@@ -90,6 +95,22 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
             className="w-full resize-none rounded-lg border border-[var(--chat-border)] bg-[var(--chat-bg)] px-3 py-2 text-sm text-[var(--chat-text)] outline-none transition-colors focus:border-[var(--chat-border2)]"
           />
         </div>
+
+        {availableSkillIds.length > 0 && (
+          <div>
+            <p className="mb-2 text-sm font-medium text-[var(--chat-text2)]">Loaded Skills</p>
+            <div className="flex flex-wrap gap-2 rounded-lg border border-[var(--chat-border)] bg-[var(--chat-bg)] p-3">
+              {availableSkillIds.map((skillId) => (
+                <span
+                  key={skillId}
+                  className="inline-flex items-center rounded-full bg-[var(--chat-accent)]/20 px-2.5 py-1 text-xs font-medium text-[var(--chat-accent)]"
+                >
+                  {skillId}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div>
           <p className="mb-2 text-sm font-medium text-[var(--chat-text2)]">Tools</p>

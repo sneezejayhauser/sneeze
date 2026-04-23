@@ -29,6 +29,11 @@ function loadTools(): ToolSettings {
       calculate: parsed.calculate ?? true,
       get_current_time: parsed.get_current_time ?? true,
       read_url: parsed.read_url ?? true,
+      read_skill: parsed.read_skill ?? true,
+      list_skills: parsed.list_skills ?? true,
+      run_python: parsed.run_python ?? true,
+      run_bash: parsed.run_bash ?? true,
+      write_file: parsed.write_file ?? true,
     };
   } catch {
     return DEFAULT_TOOL_SETTINGS;
@@ -82,7 +87,17 @@ export function useTools() {
   }, []);
 
   const enabledTools = useMemo<Tool[]>(() => {
-    const order: ToolName[] = ["web_search", "calculate", "get_current_time", "read_url"];
+    const order: ToolName[] = [
+      "web_search",
+      "calculate",
+      "get_current_time",
+      "read_url",
+      "read_skill",
+      "list_skills",
+      "run_python",
+      "run_bash",
+      "write_file",
+    ];
     return order
       .filter((name) => toolSettings[name])
       .map((name) => TOOL_LIST.find((tool) => tool.name === name))

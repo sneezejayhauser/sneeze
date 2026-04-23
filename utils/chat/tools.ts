@@ -1,10 +1,10 @@
-export type ToolName = "web_search" | "get_current_time" | "calculate" | "read_url";
+export type ToolName = "web_search" | "get_current_time" | "calculate" | "read_url" | "read_skill" | "list_skills" | "run_python" | "run_bash" | "write_file";
 
 export interface Tool {
   name: ToolName;
   description: string;
   parameters: Record<string, unknown>;
-  execute: (args: Record<string, unknown>) => Promise<string>;
+  execute: (args: Record<string, unknown>, execFn?: SandboxExecFunction) => Promise<string>;
 }
 
 export interface ToolCallInfo {
@@ -27,7 +27,25 @@ export interface ToolSettings {
   calculate: boolean;
   get_current_time: boolean;
   read_url: boolean;
+  read_skill: boolean;
+  list_skills: boolean;
+  run_python: boolean;
+  run_bash: boolean;
+  write_file: boolean;
 }
+
+export type SandboxExecType = "bash" | "python" | "write_file" | "read_file" | "list_dir";
+
+export interface SandboxExecOptions {
+  code?: string;
+  path?: string;
+  content?: string;
+}
+
+export type SandboxExecFunction = (
+  type: SandboxExecType,
+  options: SandboxExecOptions
+) => Promise<{ result: string; error?: string }>;
 
 interface DuckDuckGoTopic {
   Text?: string;
@@ -56,7 +74,7 @@ const CALCULATOR_REPLACEMENTS: Record<string, string> = {
   pow: "Math.pow",
 };
 
-function flattenTopics(topics: DuckDuckGoTopic[] = [], acc: DuckDuckGoTopic[] = []) {
+function flattenTopics(topics: DuckDuckGoTopic[] = [], acc: DuckDuckGoTopic[] = []): DuckDuckGoTopic[] {
   for (const topic of topics) {
     if (topic.Text) {
       acc.push(topic);
@@ -100,6 +118,11 @@ export const DEFAULT_TOOL_SETTINGS: ToolSettings = {
   calculate: true,
   get_current_time: true,
   read_url: true,
+  read_skill: true,
+  list_skills: true,
+  run_python: true,
+  run_bash: true,
+  write_file: true,
 };
 
 export const TOOL_LIST: Tool[] = [
@@ -265,6 +288,226 @@ export const TOOL_LIST: Tool[] = [
       }
     },
   },
+  {
+    name: "read_skill",
+    description: "Read the content of a skill by its ID.",
+    parameters: {
+      type: "object",
+      properties: {
+        skill_id: {
+          type: "string",
+          description: "The unique identifier of the skill to read.",
+        },
+      },
+      required: ["skill_id"],
+      additionalProperties: false,
+    },
+    execute: async (args) => {
+      const skillId = typeof args.skill_id === "string" ? args.skill_id.trim() : "";
+      if (!skillId) {
+        return "Error: skill_id is required";
+      }
+
+      try {
+        const res = await fetch(`/chat/api/skills/${encodeURIComponent(skillId)}`);
+        if (!res.ok) {
+          if (res.status === 404) {
+            return `Skill not found: ${skillId}`;
+          }
+          return `Failed to read skill: HTTP ${res.status}`;
+        }
+
+        const data = (await res.json()) as {
+          id?: string;
+          title?: string;
+          description?: string;
+          content?: string;
+          error?: string;
+        };
+
+        if (data.error) {
+          return `Error reading skill: ${data.error}`;
+        }
+
+        const lines: string[] = [];
+        if (data.title) {
+          lines.push(`# ${data.title}`);
+        }
+        if (data.description) {
+          lines.push(`\n${data.description}`);
+        }
+        if (data.content) {
+          lines.push(`\n---\n${data.content}`);
+        }
+
+        return lines.join("\n").trim() || `Skill ${skillId} has no content`;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unknown error";
+        return `Error reading skill: ${message}`;
+      }
+    },
+  },
+  {
+    name: "list_skills",
+    description: "List all available skills with their IDs, titles, and descriptions.",
+    parameters: {
+      type: "object",
+      properties: {},
+      additionalProperties: false,
+    },
+    execute: async () => {
+      try {
+        const res = await fetch("/chat/api/skills");
+        if (!res.ok) {
+          return `Failed to list skills: HTTP ${res.status}`;
+        }
+
+        const data = (await res.json()) as {
+          skills?: Array<{ id: string; title: string; description: string }>;
+          error?: string;
+        };
+
+        if (data.error) {
+          return `Error listing skills: ${data.error}`;
+        }
+
+        if (!data.skills || data.skills.length === 0) {
+          return "No skills available";
+        }
+
+        const lines: string[] = ["Available skills:"];
+        for (const skill of data.skills) {
+          lines.push(`\n- **${skill.id}**: ${skill.title}`);
+          if (skill.description) {
+            lines.push(`  ${skill.description}`);
+          }
+        }
+
+        return lines.join("\n");
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unknown error";
+        return `Error listing skills: ${message}`;
+      }
+    },
+  },
+  {
+    name: "run_python",
+    description: "Execute Python code in a sandboxed environment and return the output.",
+    parameters: {
+      type: "object",
+      properties: {
+        code: {
+          type: "string",
+          description: "The Python code to execute.",
+        },
+      },
+      required: ["code"],
+      additionalProperties: false,
+    },
+    execute: async (args, execFn) => {
+      const code = typeof args.code === "string" ? args.code : "";
+      if (!code) {
+        return "Error: code is required";
+      }
+
+      if (!execFn) {
+        return "Error: sandbox execution not available";
+      }
+
+      try {
+        const execResult = await execFn("python", { code });
+        if (execResult.error) {
+          return `Python execution error: ${execResult.error}`;
+        }
+        return execResult.result || "Code executed with no output";
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unknown error";
+        return `Python execution failed: ${message}`;
+      }
+    },
+  },
+  {
+    name: "run_bash",
+    description: "Execute bash commands in a sandboxed environment and return the output.",
+    parameters: {
+      type: "object",
+      properties: {
+        command: {
+          type: "string",
+          description: "The bash command to execute.",
+        },
+      },
+      required: ["command"],
+      additionalProperties: false,
+    },
+    execute: async (args, execFn) => {
+      const command = typeof args.command === "string" ? args.command : "";
+      if (!command) {
+        return "Error: command is required";
+      }
+
+      if (!execFn) {
+        return "Error: sandbox execution not available";
+      }
+
+      try {
+        const execResult = await execFn("bash", { code: command });
+        if (execResult.error) {
+          return `Bash execution error: ${execResult.error}`;
+        }
+        return execResult.result || "Command executed with no output";
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unknown error";
+        return `Bash execution failed: ${message}`;
+      }
+    },
+  },
+  {
+    name: "write_file",
+    description: "Write content to a file in the sandboxed environment.",
+    parameters: {
+      type: "object",
+      properties: {
+        path: {
+          type: "string",
+          description: "The file path to write to.",
+        },
+        content: {
+          type: "string",
+          description: "The content to write to the file.",
+        },
+      },
+      required: ["path", "content"],
+      additionalProperties: false,
+    },
+    execute: async (args, execFn) => {
+      const filePath = typeof args.path === "string" ? args.path : "";
+      const content = typeof args.content === "string" ? args.content : "";
+
+      if (!filePath) {
+        return "Error: path is required";
+      }
+
+      if (content === "") {
+        return "Error: content is required";
+      }
+
+      if (!execFn) {
+        return "Error: sandbox execution not available";
+      }
+
+      try {
+        const execResult = await execFn("write_file", { path: filePath, content });
+        if (execResult.error) {
+          return `Write file error: ${execResult.error}`;
+        }
+        return `File written successfully: ${filePath}`;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unknown error";
+        return `Write file failed: ${message}`;
+      }
+    },
+  },
 ];
 
 export function parseToolArguments(rawArguments: string): Record<string, unknown> {
@@ -294,6 +537,16 @@ export function getToolProgressLabel(name: string): string {
       return "Calculating…";
     case "get_current_time":
       return "Getting time…";
+    case "read_skill":
+      return "Reading skill…";
+    case "list_skills":
+      return "Listing skills…";
+    case "run_python":
+      return "Running Python…";
+    case "run_bash":
+      return "Running bash…";
+    case "write_file":
+      return "Writing file…";
     default:
       return "Running tool…";
   }
@@ -316,6 +569,16 @@ export function getToolInputPreview(name: string, args: Record<string, unknown>)
       return fromValue(args.expression, "(empty expression)");
     case "get_current_time":
       return fromValue(args.timezone, "Local timezone");
+    case "read_skill":
+      return fromValue(args.skill_id, "(empty skill_id)");
+    case "list_skills":
+      return "(no arguments)";
+    case "run_python":
+      return fromValue(args.code, "(empty code)");
+    case "run_bash":
+      return fromValue(args.command, "(empty command)");
+    case "write_file":
+      return fromValue(args.path, "(empty path)");
     default:
       return "";
   }

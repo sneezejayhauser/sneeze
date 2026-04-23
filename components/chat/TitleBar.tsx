@@ -5,12 +5,23 @@ import { useChatContext } from "@/context/ChatContext";
 import { useConversations } from "@/hooks/chat/useConversations";
 import ModelSelector from "./ModelSelector";
 import SettingsModal from "./SettingsModal";
+import type { SandboxStatus } from "@/hooks/chat/useSandbox";
 
 interface TitleBarProps {
   onMenuClick: () => void;
+  sandboxStatus?: SandboxStatus;
+  sandboxId?: string | null;
 }
 
-export default function TitleBar({ onMenuClick }: TitleBarProps) {
+const SANDBOX_STATUS_CONFIG: Record<SandboxStatus, { label: string; color: string }> = {
+  idle: { label: "Sandbox: Idle", color: "text-[var(--chat-text3)]" },
+  creating: { label: "Sandbox: Creating...", color: "text-yellow-500" },
+  ready: { label: "Sandbox: Ready", color: "text-green-500" },
+  error: { label: "Sandbox: Error", color: "text-red-500" },
+  destroying: { label: "Sandbox: Destroying...", color: "text-yellow-500" },
+};
+
+export default function TitleBar({ onMenuClick, sandboxStatus = "idle", sandboxId }: TitleBarProps) {
   const { apiBaseUrl, apiKey, currentConversationId } = useChatContext();
   const { conversations, updateConversation } = useConversations();
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -40,6 +51,8 @@ export default function TitleBar({ onMenuClick }: TitleBarProps) {
     }
     setEditing(false);
   }, [currentConversationId, editValue, updateConversation]);
+
+  const sandboxConfig = SANDBOX_STATUS_CONFIG[sandboxStatus];
 
   return (
     <>
@@ -86,6 +99,12 @@ export default function TitleBar({ onMenuClick }: TitleBarProps) {
               onChange={handleModelChange}
             />
           )}
+          <span
+            className={`text-xs ${sandboxConfig.color}`}
+            title={sandboxId ? `Sandbox ID: ${sandboxId}` : sandboxConfig.label}
+          >
+            {sandboxConfig.label}
+          </span>
           <button
             onClick={() => setSettingsOpen(true)}
             className="rounded-md p-1.5 text-[var(--chat-text3)] transition-colors hover:text-[var(--chat-text2)]"
