@@ -18,8 +18,8 @@ export default function ModelSelector({ apiBaseUrl, apiKey, value, onChange }: M
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
+    const handler = (event: MouseEvent) => {
+      if (ref.current && !ref.current.contains(event.target as Node)) {
         setOpen(false);
       }
     };
@@ -34,39 +34,39 @@ export default function ModelSelector({ apiBaseUrl, apiKey, value, onChange }: M
       : []),
   ];
 
-  const selected = allModels.find((m) => m.id === value) ?? allModels[0];
+  const selected = allModels.find((model) => model.id === value) ?? allModels[0];
 
   return (
     <div className="relative" ref={ref}>
       <button
-        onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-1.5 rounded-md border border-slate-700/60 bg-slate-800/40 px-2.5 py-1.5 text-xs font-medium text-slate-300 hover:text-white transition-colors"
+        onClick={() => setOpen((current) => !current)}
+        className="flex items-center gap-1.5 rounded-md border border-[var(--chat-border)] bg-[var(--chat-bg2)] px-2.5 py-1.5 text-xs font-medium text-[var(--chat-text2)] transition-colors hover:bg-[var(--chat-bg3)] hover:text-[var(--chat-text)]"
       >
         {selected?.id ?? "Select model"}
-        <svg className="h-3 w-3 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="h-3 w-3 text-[var(--chat-text3)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       </button>
+
       {open && (
-        <div className="absolute right-0 mt-1 w-56 rounded-lg border border-slate-700/60 bg-slate-900 shadow-xl z-50 py-1">
-          {loading && (
-            <div className="px-3 py-2 text-xs text-slate-500">Loading models…</div>
-          )}
-          {allModels.map((m) => (
+        <div className="absolute right-0 z-50 mt-1 w-56 rounded-lg border border-[var(--chat-border)] bg-[var(--chat-bg2)] py-1 shadow-xl">
+          {loading && <div className="px-3 py-2 text-xs text-[var(--chat-text3)]">Loading models…</div>}
+
+          {allModels.map((model) => (
             <button
-              key={m.id}
+              key={model.id}
               onClick={() => {
-                onChange(m.id);
+                onChange(model.id);
                 setOpen(false);
               }}
               className={`flex w-full items-center justify-between px-3 py-2 text-left text-xs transition-colors ${
-                value === m.id
-                  ? "bg-sky-500/20 text-sky-400"
-                  : "text-slate-300 hover:bg-slate-800/60"
+                value === model.id
+                  ? "bg-[var(--chat-accent-dim)] text-[var(--chat-text)]"
+                  : "text-[var(--chat-text2)] hover:bg-[var(--chat-bg3)] hover:text-[var(--chat-text)]"
               }`}
             >
-              {m.id}
-              {value === m.id && (
+              {model.id}
+              {value === model.id && (
                 <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>

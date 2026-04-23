@@ -11,9 +11,5 @@ export default function ChatLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return (
-    <div className="h-screen w-screen overflow-hidden bg-slate-950 text-slate-100">
-      {children}
-    </div>
-  );
+  return <div className="chat-root h-screen w-screen overflow-hidden">{children}</div>;
 }

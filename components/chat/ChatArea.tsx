@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import { useChatContext } from "@/context/ChatContext";
 import { useConversations } from "@/hooks/chat/useConversations";
 import { useStreaming } from "@/hooks/chat/useStreaming";
+import { useTools } from "@/hooks/chat/useTools";
 import { buildMessages } from "@/utils/chat/buildMessages";
 import { parseArtifacts } from "@/utils/chat/parseArtifacts";
 import type { Attachment } from "@/utils/chat/buildMessages";
@@ -18,7 +19,15 @@ export default function ChatArea() {
   const { apiBaseUrl, apiKey, currentConversationId, settings, setCurrentConversationId } =
     useChatContext();
   const { conversations, createConversation, updateConversation } = useConversations();
-  const { content: streamingContent, done, error, startStream } = useStreaming();
+  const {
+    content: streamingContent,
+    done,
+    error,
+    toolRuns,
+    toolsUnavailableNote,
+    startStream,
+  } = useStreaming();
+  const { enabledTools } = useTools();
   const [activeArtifact, setActiveArtifact] = useState<Artifact | null>(null);
 
   const conversation = conversations.find((c) => c.id === currentConversationId);
@@ -58,11 +67,15 @@ export default function ChatArea() {
 
       const built = buildMessages(payloadMessages);
 
-      const assistantContent = await startStream(built, model, apiBaseUrl, apiKey);
+      const streamResult = await startStream(built, model, apiBaseUrl, apiKey, enabledTools);
 
       const afterStreamMessages = [
         ...nextMessages,
-        { role: "assistant" as const, content: assistantContent },
+        {
+          role: "assistant" as const,
+          content: streamResult.content,
+          ...(streamResult.toolRuns.length > 0 ? { toolRuns: streamResult.toolRuns } : {}),
+        },
       ];
       updateConversation(convId, { messages: afterStreamMessages });
     },
@@ -77,6 +90,7 @@ export default function ChatArea() {
       apiBaseUrl,
       apiKey,
       setCurrentConversationId,
+      enabledTools,
     ]
   );
 
@@ -99,15 +113,20 @@ export default function ChatArea() {
         : messagesUpTo;
 
       const built = buildMessages(payloadMessages);
-      const assistantContent = await startStream(
+      const streamResult = await startStream(
         built,
         conversation.model,
         apiBaseUrl,
-        apiKey
+        apiKey,
+        enabledTools
       );
       const finalMessages = [
         ...messagesUpTo,
-        { role: "assistant" as const, content: assistantContent },
+        {
+          role: "assistant" as const,
+          content: streamResult.content,
+          ...(streamResult.toolRuns.length > 0 ? { toolRuns: streamResult.toolRuns } : {}),
+        },
       ];
       updateConversation(conversation.id, { messages: finalMessages });
     },
@@ -118,16 +137,17 @@ export default function ChatArea() {
       apiBaseUrl,
       apiKey,
       updateConversation,
+      enabledTools,
     ]
   );
 
   const handleArtifactClick = useCallback(
     (id: string) => {
       if (!conversation) return;
-      for (const m of conversation.messages) {
-        if (m.role !== "assistant") continue;
-        const arts = parseArtifacts(m.content);
-        const found = arts.find((a) => a.id === id);
+      for (const message of conversation.messages) {
+        if (message.role !== "assistant") continue;
+        const artifacts = parseArtifacts(message.content);
+        const found = artifacts.find((artifact) => artifact.id === id);
         if (found) {
           setActiveArtifact(found);
           break;
@@ -138,12 +158,13 @@ export default function ChatArea() {
   );
 
   return (
-    <div className="flex flex-1 flex-col h-full overflow-hidden relative">
+    <div className="relative flex h-full flex-1 flex-col overflow-hidden bg-[var(--chat-bg)]">
       <TitleBar onMenuClick={() => {}} />
       {conversation ? (
         <MessageList
           messages={conversation.messages}
           streamingContent={!done ? streamingContent : undefined}
+          streamingToolRuns={!done ? toolRuns : undefined}
           onRegenerate={handleRegenerate}
           onArtifactClick={handleArtifactClick}
         />
@@ -151,14 +172,15 @@ export default function ChatArea() {
         <EmptyState onPromptClick={handlePromptClick} />
       )}
       {error && (
-        <div className="px-4 py-2 text-xs text-red-400 bg-red-500/10 border-t border-red-500/20">
+        <div className="border-t border-[var(--chat-border)] bg-[var(--chat-accent-dim)] px-4 py-2 text-xs text-[var(--chat-text2)]">
           {error}
         </div>
       )}
       <InputBar
         onSend={handleSend}
         disabled={!done}
-        placeholder={conversation ? "Message…" : "Start a new chat…"}
+        notice={toolsUnavailableNote}
+        placeholder={conversation ? "Message Claude…" : "Start a new chat…"}
       />
       {activeArtifact && (
         <ArtifactPanel artifact={activeArtifact} onClose={() => setActiveArtifact(null)} />
