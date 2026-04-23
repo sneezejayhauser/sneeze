@@ -36,8 +36,8 @@ export function useConversations() {
   
   // Initialize to empty
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  // Loading will be updated after fetch completes
-  const [loading, setLoading] = useState(false);
+  // Loading starts true (not yet loaded), set to false after fetch completes
+  const [loading, setLoading] = useState(true);
 
   // Fetch conversations when user changes
   useEffect(() => {
@@ -49,38 +49,42 @@ export function useConversations() {
     let channel: ReturnType<typeof supabase.channel> | null = null;
 
     const setupSubscriptions = async () => {
-      // Subscribe to realtime changes first
-      channel = supabase
-        .channel("conversations_changes")
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "conversations",
-            filter: `user_id=eq.${user.id}`,
-          },
-          (payload) => {
-            if (cancelled) return;
-            if (payload.eventType === "INSERT") {
-              setConversations((prev) => [payload.new as Conversation, ...prev]);
-            } else if (payload.eventType === "UPDATE") {
-              setConversations((prev) =>
-                prev.map((c) =>
-                  c.id === payload.new.id ? (payload.new as Conversation) : c
-                )
-              );
-            } else if (payload.eventType === "DELETE") {
-              setConversations((prev) =>
-                prev.filter((c) => c.id !== payload.old.id)
-              );
-            }
-            notify();
-          }
-        )
-        .subscribe();
+      // Create channel first (without subscribing)
+      const conversationsChannel = supabase.channel("conversations_changes");
 
-      // Then fetch conversations
+      // Register ALL handlers FIRST (synchronously) before subscribing
+      conversationsChannel.on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "conversations",
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          if (cancelled) return;
+          if (payload.eventType === "INSERT") {
+            setConversations((prev) => [payload.new as Conversation, ...prev]);
+          } else if (payload.eventType === "UPDATE") {
+            setConversations((prev) =>
+              prev.map((c) =>
+                c.id === payload.new.id ? (payload.new as Conversation) : c
+              )
+            );
+          } else if (payload.eventType === "DELETE") {
+            setConversations((prev) =>
+              prev.filter((c) => c.id !== payload.old.id)
+            );
+          }
+          notify();
+        }
+      );
+
+      // THEN subscribe once - all handlers already registered
+      channel = conversationsChannel;
+      await conversationsChannel.subscribe();
+
+      // Fetch conversations after subscription is set up
       try {
         const res = await fetch("/chat/api/conversations");
         if (!cancelled && res.ok) {
@@ -91,7 +95,7 @@ export function useConversations() {
         // silent fail
       } finally {
         if (!cancelled) {
-          setLoading(true);
+          setLoading(false);
         }
       }
     };
