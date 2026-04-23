@@ -1,8 +1,8 @@
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
 export async function GET() {
-  const supabase = await createServerSupabaseClient();
+  const supabase = await createClient();
   
   const { data: { session } } = await supabase.auth.getSession();
   
@@ -24,7 +24,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const supabase = await createServerSupabaseClient();
+  const supabase = await createClient();
   
   const { data: { session } } = await supabase.auth.getSession();
   
@@ -41,7 +41,6 @@ export async function POST(request: Request) {
       user_id: session.user.id,
       title: title || "New chat",
       model: model || "claude-sonnet-4-20250514",
-      messages: [],
     })
     .select()
     .single();

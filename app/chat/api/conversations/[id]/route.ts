@@ -1,4 +1,4 @@
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
 export async function GET(
@@ -6,7 +6,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const supabase = await createServerSupabaseClient();
+  const supabase = await createClient();
   
   const { data: { session } } = await supabase.auth.getSession();
   
@@ -14,18 +14,33 @@ export async function GET(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { data, error } = await supabase
+  // Get conversation with messages
+  const { data: conversation, error: convError } = await supabase
     .from("conversations")
     .select("*")
     .eq("id", id)
     .eq("user_id", session.user.id)
     .single();
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 404 });
+  if (convError) {
+    return NextResponse.json({ error: convError.message }, { status: 404 });
   }
 
-  return NextResponse.json(data);
+  // Get messages for this conversation
+  const { data: messages, error: msgError } = await supabase
+    .from("messages")
+    .select("*")
+    .eq("conversation_id", id)
+    .order("created_at", { ascending: true });
+
+  if (msgError) {
+    return NextResponse.json({ error: msgError.message }, { status: 500 });
+  }
+
+  return NextResponse.json({
+    ...conversation,
+    messages,
+  });
 }
 
 export async function PATCH(
@@ -33,7 +48,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const supabase = await createServerSupabaseClient();
+  const supabase = await createClient();
   
   const { data: { session } } = await supabase.auth.getSession();
   
@@ -66,7 +81,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const supabase = await createServerSupabaseClient();
+  const supabase = await createClient();
   
   const { data: { session } } = await supabase.auth.getSession();
   

@@ -1,6 +1,8 @@
 "use client";
 
 import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
+import { createClient as createSupabaseClient } from "@/lib/supabase/client";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 export interface ChatSettings {
   systemPrompt: string;
@@ -26,6 +28,7 @@ export interface ChatContextValue {
   defaultSystemPrompt: string;
   availableSkillIds: string[];
   user: User | null;
+  supabase: SupabaseClient;
   setActiveView: (view: "chat" | "agent") => void;
   setCurrentConversationId: (id: string | null) => void;
   setSettings: (settings: ChatSettings) => void;
@@ -82,6 +85,8 @@ export function ChatProvider({
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const [settings, setSettingsState] = useState<ChatSettings>(loadSettings);
 
+  const supabase = createSupabaseClient();
+
   const setActiveView = useCallback((view: "chat" | "agent") => {
     setActiveViewState(view);
   }, []);
@@ -102,6 +107,7 @@ export function ChatProvider({
         defaultSystemPrompt,
         availableSkillIds,
         user,
+        supabase,
         setActiveView,
         setCurrentConversationId,
         setSettings,

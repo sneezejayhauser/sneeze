@@ -5,7 +5,7 @@ import { useChatContext } from "@/context/ChatContext";
 import SidebarNav from "./SidebarNav";
 import ConversationList from "./ConversationList";
 import SearchModal from "./SearchModal";
-import { createBrowserSupabaseClient } from "@/lib/supabase/client";
+import { createClient } from "@/lib/supabase/client";
 
 export default function Sidebar() {
   const { setCurrentConversationId, activeView, setActiveView, user } = useChatContext();
@@ -19,7 +19,7 @@ export default function Sidebar() {
   }, [setCurrentConversationId, setActiveView]);
 
   const handleLogout = useCallback(async () => {
-    const supabase = createBrowserSupabaseClient();
+    const supabase = createClient();
     await supabase.auth.signOut();
     window.location.reload();
   }, []);

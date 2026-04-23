@@ -1,4 +1,4 @@
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
 import { promises as fs } from "fs";
 import path from "path";
 import LoginScreen from "@/components/chat/LoginScreen";
@@ -50,12 +50,12 @@ async function readSystemPrompt(): Promise<string> {
 }
 
 export default async function ChatPage() {
-  const supabase = await createServerSupabaseClient();
+  const supabase = await createClient();
   const { data: { session } } = await supabase.auth.getSession();
 
   const isSupabaseConfigured = 
     !!process.env.NEXT_PUBLIC_SUPABASE_URL && 
-    !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    !!process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
   const apiBaseUrl = process.env.API_BASE_URL || "https://api.anthropic.com";
   const apiKey = process.env.API_KEY || "";

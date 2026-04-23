@@ -16,6 +16,8 @@ interface RunCodeResponse {
 }
 
 export async function POST(request: Request): Promise<NextResponse<RunCodeResponse>> {
+  let sandbox: Sandbox | null = null;
+
   try {
     const body = (await request.json()) as RunCodeRequest;
     const { code, language = "python" } = body;
@@ -31,43 +33,76 @@ export async function POST(request: Request): Promise<NextResponse<RunCodeRespon
     }
 
     // Create a sandbox using the code-interpreter template
-    const sandbox = await Sandbox.create({
+    sandbox = await Sandbox.create({
       apiKey: e2bApiKey,
-      timeoutMs: 60000, // 60 seconds
     });
 
     try {
-      // Run the code
+      // Run the code with the specified language
       const execution = await sandbox.runCode(code, {
-        language,
-        timeoutMs: 60000,
+        language: language as "python" | "javascript",
       });
 
-      // Collect logs
-      const stdout = execution.logs.stdout.join("");
-      const stderr = execution.logs.stderr.join("");
-
-      // Get the main result text
-      const resultText = execution.text;
-
-      // Combine result with logs
-      let responseText = resultText || "";
-      if (stderr) {
-        responseText = responseText ? `${responseText}\n\nSTDERR:\n${stderr}` : `STDERR:\n${stderr}`;
+      // Handle execution error
+      if (execution.error) {
+        // ExecutionError has name, value, and traceback properties
+        const errorMessage = execution.error.traceback 
+          ? `${execution.error.name}: ${execution.error.value}\n${execution.error.traceback}`
+          : `${execution.error.name}: ${execution.error.value}`;
+        return NextResponse.json({
+          error: errorMessage || "Code execution failed",
+          logs: execution.logs,
+        });
       }
-      if (stdout && !responseText.includes(stdout)) {
-        responseText = responseText ? `${responseText}\n\nSTDOUT:\n${stdout}` : stdout;
+
+      // Extract text results from execution
+      const textResults = execution.results
+        .filter((r) => r.isMainResult)
+        .map((r) => {
+          if ("text" in r && r.text) {
+            return r.text;
+          }
+          // Check for rawData with text property using type-safe access
+          if (typeof r === "object" && r !== null && "rawData" in r) {
+            const rawData = (r as { rawData?: { text?: string } }).rawData;
+            if (rawData && typeof rawData === "object" && "text" in rawData && rawData.text) {
+              return rawData.text;
+            }
+          }
+          return "";
+        })
+        .filter(Boolean)
+        .join("\n\n");
+
+      // Combine results with logs
+      let responseText = textResults || "";
+      
+      if (execution.logs.stderr.length > 0) {
+        responseText = responseText
+          ? `${responseText}\n\nSTDERR:\n${execution.logs.stderr.join("\n")}`
+          : `STDERR:\n${execution.logs.stderr.join("\n")}`;
       }
 
       return NextResponse.json({
-        text: responseText,
+        text: responseText || "Code executed successfully",
         logs: execution.logs,
       });
     } finally {
-      // Always stop/kill the sandbox
-      await sandbox.kill();
+      // Always kill the sandbox
+      if (sandbox) {
+        await sandbox.kill();
+      }
     }
   } catch (error) {
+    // Kill sandbox on error
+    if (sandbox) {
+      try {
+        await sandbox.kill();
+      } catch {
+        // ignore kill errors
+      }
+    }
+
     const message = error instanceof Error ? error.message : "Failed to execute code";
     return NextResponse.json({ error: message, logs: { stdout: [], stderr: [] } }, { status: 500 });
   }

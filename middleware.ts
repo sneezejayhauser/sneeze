@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createServerClient } from "@supabase/ssr";
 import { getSubdomainFromHost } from "@/lib/subdomain";
 
 export async function middleware(request: NextRequest) {
@@ -21,6 +22,51 @@ export async function middleware(request: NextRequest) {
   const rewrittenPath = `/${subdomain}${pathname === "/" ? "" : pathname}`;
   const url = request.nextUrl.clone();
   url.pathname = rewrittenPath;
+
+  // For /chat routes, refresh the session before rewriting
+  if (pathname.startsWith("/chat")) {
+    const response = NextResponse.rewrite(url);
+
+    // Get Supabase environment variables
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+
+    // Only refresh session if Supabase is configured
+    if (supabaseUrl && supabaseKey) {
+      try {
+        // Create response with cookie handling for session refresh
+        const supabaseResponse = NextResponse.next();
+        
+        // Create server client for session refresh
+        const supabase = createServerClient(supabaseUrl, supabaseKey, {
+          cookies: {
+            getAll() {
+              return request.cookies.getAll();
+            },
+            setAll(cookiesToSet) {
+              cookiesToSet.forEach(({ name, value, options }) => {
+                supabaseResponse.cookies.set(name, value, options);
+              });
+            },
+          },
+        });
+
+        // Refresh the session - this will update cookies if needed
+        await supabase.auth.getUser();
+
+        // Copy over any cookies set by the supabase client
+        const setCookies = supabaseResponse.headers.get("set-cookie");
+        if (setCookies) {
+          response.headers.append("set-cookie", setCookies);
+        }
+      } catch {
+        // Session refresh failed, continue anyway
+      }
+    }
+
+    return response;
+  }
+
   return NextResponse.rewrite(url);
 }
 

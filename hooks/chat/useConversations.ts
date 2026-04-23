@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import type { ToolRun } from "@/utils/chat/tools";
 import { useChatContext } from "@/context/ChatContext";
 
@@ -33,14 +32,12 @@ function notify() {
 }
 
 export function useConversations() {
-  const { user } = useChatContext();
+  const { user, supabase } = useChatContext();
   
   // Initialize to empty
   const [conversations, setConversations] = useState<Conversation[]>([]);
   // Loading will be updated after fetch completes
   const [loading, setLoading] = useState(false);
-  
-  const supabase = createBrowserSupabaseClient();
 
   // Fetch conversations when user changes
   useEffect(() => {
