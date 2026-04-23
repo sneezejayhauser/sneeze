@@ -8,9 +8,9 @@ export async function GET(
   const { id } = await params;
   const supabase = await createClient();
   
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { user } } = await supabase.auth.getUser();
   
-  if (!session) {
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -19,7 +19,7 @@ export async function GET(
     .from("conversations")
     .select("*")
     .eq("id", id)
-    .eq("user_id", session.user.id)
+    .eq("user_id", user.id)
     .single();
 
   if (convError) {
@@ -50,9 +50,9 @@ export async function PATCH(
   const { id } = await params;
   const supabase = await createClient();
   
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { user } } = await supabase.auth.getUser();
   
-  if (!session) {
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -65,7 +65,7 @@ export async function PATCH(
       updated_at: new Date().toISOString(),
     })
     .eq("id", id)
-    .eq("user_id", session.user.id)
+    .eq("user_id", user.id)
     .select()
     .single();
 
@@ -83,9 +83,9 @@ export async function DELETE(
   const { id } = await params;
   const supabase = await createClient();
   
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { user } } = await supabase.auth.getUser();
   
-  if (!session) {
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -93,7 +93,7 @@ export async function DELETE(
     .from("conversations")
     .delete()
     .eq("id", id)
-    .eq("user_id", session.user.id);
+    .eq("user_id", user.id);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
