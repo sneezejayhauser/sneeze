@@ -43,3 +43,23 @@ export function buildMessages(messages: Message[]): Array<{
     return { role: msg.role, content: parts };
   });
 }
+
+export function buildSystemPrompt(
+  defaultPrompt: string,
+  userPrompt?: string,
+  availableSkillIds?: string[]
+): string {
+  const parts = [];
+  if (defaultPrompt) parts.push(defaultPrompt);
+  if (userPrompt) parts.push(userPrompt);
+
+  let combined = parts.join("\n\n");
+
+  if (availableSkillIds && availableSkillIds.length > 0) {
+    const skillsAppendix =
+      "\n\nAvailable skills:\n" + availableSkillIds.map((id) => `- ${id}`).join("\n");
+    combined += skillsAppendix;
+  }
+
+  return combined;
+}
