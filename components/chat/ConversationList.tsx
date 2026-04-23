@@ -48,7 +48,7 @@ export default function ConversationList({ onSelect }: ConversationListProps) {
           >
             <div className="min-w-0">
               <p className="truncate font-medium">{conversation.title}</p>
-              <p className="text-xs text-[var(--chat-text3)]">{formatTime(conversation.updatedAt)}</p>
+              <p className="text-xs text-[var(--chat-text3)]">{formatTime(conversation.updated_at)}</p>
             </div>
 
             {(hoverId === conversation.id || isActive) && (

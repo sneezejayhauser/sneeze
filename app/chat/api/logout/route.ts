@@ -1,17 +1,8 @@
-import { cookies } from "next/headers";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
 export async function POST() {
-  const cookieStore = await cookies();
-  cookieStore.set({
-    name: "chat_auth",
-    value: "",
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
-    path: "/",
-    maxAge: 0,
-  });
-
+  const supabase = await createServerSupabaseClient();
+  await supabase.auth.signOut();
   return NextResponse.json({ success: true });
 }

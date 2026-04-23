@@ -4,22 +4,17 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 export type SandboxStatus = "idle" | "creating" | "ready" | "error" | "destroying";
 
-export interface SandboxExecOptions {
-  code?: string;
-  path?: string;
-  content?: string;
-}
-
-export type SandboxExecType = "bash" | "python" | "write_file" | "read_file" | "list_dir";
-
 export interface SandboxExecResult {
-  result: string;
+  text?: string;
+  logs?: {
+    stdout: string[];
+    stderr: string[];
+  };
   error?: string;
 }
 
 export function useSandbox() {
   const [status, setStatus] = useState<SandboxStatus>("idle");
-  const [sandboxId, setSandboxId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -28,54 +23,24 @@ export function useSandbox() {
     setError(null);
 
     try {
-      const response = await fetch("/chat/api/sandbox", {
-        method: "POST",
-        signal: abortControllerRef.current?.signal,
-      });
-
-      if (!response.ok) {
-        const data = (await response.json()) as { error?: string };
-        const errorMsg = data.error || `HTTP ${response.status}`;
-        setError(errorMsg);
-        setStatus("error");
-        return null;
-      }
-
-      const data = (await response.json()) as { sandboxId: string | null; error?: string };
-
-      if (!data.sandboxId) {
-        const errorMsg = data.error || "No sandbox ID returned";
-        setError(errorMsg);
-        setStatus("error");
-        return null;
-      }
-
-      setSandboxId(data.sandboxId);
+      // The sandbox is now created internally by the exec endpoint
+      // We just track that we're ready to execute
       setStatus("ready");
-      return data.sandboxId;
+      return "ready";
     } catch (err) {
-      if (err instanceof Error && err.name === "AbortError") {
-        setStatus("idle");
-        return null;
-      }
-      const message = err instanceof Error ? err.message : "Failed to create sandbox";
+      const message = err instanceof Error ? err.message : "Failed to initialize sandbox";
       setError(message);
       setStatus("error");
       return null;
     }
   }, []);
 
-  const exec = useCallback(
-    async (
-      type: SandboxExecType,
-      options: SandboxExecOptions
-    ): Promise<SandboxExecResult> => {
-      let currentSandboxId = sandboxId;
-
-      if (!currentSandboxId || status === "idle" || status === "destroying") {
-        currentSandboxId = await createSandbox();
-        if (!currentSandboxId) {
-          return { result: "", error: "Failed to create sandbox" };
+  const runCode = useCallback(
+    async (code: string, language = "python"): Promise<SandboxExecResult> => {
+      if (status === "idle" || status === "destroying") {
+        const sandboxId = await createSandbox();
+        if (!sandboxId) {
+          return { error: "Failed to initialize sandbox" };
         }
       }
 
@@ -84,55 +49,36 @@ export function useSandbox() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            sandboxId: currentSandboxId,
-            type,
-            options,
+            code,
+            language,
           }),
           signal: abortControllerRef.current?.signal,
         });
 
         if (!response.ok) {
           const data = (await response.json()) as { error?: string };
-          return { result: "", error: data.error || `HTTP ${response.status}` };
+          return { error: data.error || `HTTP ${response.status}` };
         }
 
-        const data = (await response.json()) as { result?: string; error?: string };
+        const data = (await response.json()) as SandboxExecResult;
 
-        if (data.error) {
-          return { result: "", error: data.error };
-        }
-
-        return { result: data.result || "", error: undefined };
+        return data;
       } catch (err) {
         if (err instanceof Error && err.name === "AbortError") {
-          return { result: "", error: "Request aborted" };
+          return { error: "Request aborted" };
         }
         const message = err instanceof Error ? err.message : "Execution failed";
-        return { result: "", error: message };
+        return { error: message };
       }
     },
-    [sandboxId, status, createSandbox]
+    [status, createSandbox]
   );
 
   const runPython = useCallback(
     async (code: string): Promise<SandboxExecResult> => {
-      return exec("python", { code });
+      return runCode(code, "python");
     },
-    [exec]
-  );
-
-  const runBash = useCallback(
-    async (code: string): Promise<SandboxExecResult> => {
-      return exec("bash", { code });
-    },
-    [exec]
-  );
-
-  const writeFile = useCallback(
-    async (path: string, content: string): Promise<SandboxExecResult> => {
-      return exec("write_file", { path, content });
-    },
-    [exec]
+    [runCode]
   );
 
   useEffect(() => {
@@ -145,12 +91,9 @@ export function useSandbox() {
 
   return {
     status,
-    sandboxId,
     error,
     createSandbox,
-    exec,
+    runCode,
     runPython,
-    runBash,
-    writeFile,
   };
 }
