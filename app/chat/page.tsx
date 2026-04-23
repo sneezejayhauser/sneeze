@@ -1,4 +1,4 @@
-import { cookies } from "next/headers";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { promises as fs } from "fs";
 import path from "path";
 import LoginScreen from "@/components/chat/LoginScreen";
@@ -50,14 +50,12 @@ async function readSystemPrompt(): Promise<string> {
 }
 
 export default async function ChatPage() {
-  const cookieStore = await cookies();
-  const authCookie = cookieStore.get("chat_auth");
+  const supabase = await createServerSupabaseClient();
+  const { data: { session } } = await supabase.auth.getSession();
 
-  const expectedUser = process.env.CHAT_USERNAME ?? "";
-  const expectedPass = process.env.CHAT_PASSWORD ?? "";
-
-  const isAuthConfigured = expectedUser.length > 0 && expectedPass.length > 0;
-  const isAuthenticated = authCookie?.value === "1";
+  const isSupabaseConfigured = 
+    !!process.env.NEXT_PUBLIC_SUPABASE_URL && 
+    !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   const apiBaseUrl = process.env.API_BASE_URL || "https://api.anthropic.com";
   const apiKey = process.env.API_KEY || "";
@@ -66,9 +64,13 @@ export default async function ChatPage() {
   const skillsDir = getSkillsDirectory();
   const availableSkillIds = await scanSkillsDir(skillsDir);
 
-  if (isAuthConfigured && !isAuthenticated) {
+  // Show login screen if Supabase is configured but user is not authenticated
+  if (isSupabaseConfigured && !session) {
     return <LoginScreen />;
   }
+
+  // Get user info for ChatApp
+  const user = session?.user ?? null;
 
   return (
     <ChatApp
@@ -76,6 +78,7 @@ export default async function ChatPage() {
       apiKey={apiKey}
       defaultSystemPrompt={defaultSystemPrompt}
       availableSkillIds={availableSkillIds}
+      user={user}
     />
   );
 }

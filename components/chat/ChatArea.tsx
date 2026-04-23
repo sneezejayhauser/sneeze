@@ -45,7 +45,8 @@ export default function ChatArea() {
       let model = conversation?.model;
 
       if (!convId) {
-        const newConv = createConversation("gpt-4o");
+        const newConv = await createConversation("gpt-4o");
+        if (!newConv) return;
         convId = newConv.id;
         model = newConv.model;
         setCurrentConversationId(convId);

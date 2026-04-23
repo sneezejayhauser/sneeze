@@ -5,9 +5,10 @@ import { useChatContext } from "@/context/ChatContext";
 import SidebarNav from "./SidebarNav";
 import ConversationList from "./ConversationList";
 import SearchModal from "./SearchModal";
+import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 
 export default function Sidebar() {
-  const { setCurrentConversationId, activeView, setActiveView } = useChatContext();
+  const { setCurrentConversationId, activeView, setActiveView, user } = useChatContext();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
 
@@ -18,9 +19,14 @@ export default function Sidebar() {
   }, [setCurrentConversationId, setActiveView]);
 
   const handleLogout = useCallback(async () => {
-    await fetch("/chat/api/logout", { method: "POST" });
+    const supabase = createBrowserSupabaseClient();
+    await supabase.auth.signOut();
     window.location.reload();
   }, []);
+
+  const userName = user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split("@")[0] || "User";
+  const userInitial = userName.charAt(0).toUpperCase();
+  const userAvatar = user?.user_metadata?.avatar_url;
 
   return (
     <>
@@ -85,10 +91,18 @@ export default function Sidebar() {
         <div className="border-t border-[var(--chat-border)] px-3 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--chat-bg3)] text-[13px] text-[var(--chat-text)]">
-                CJ
-              </div>
-              <span className="text-sm text-[var(--chat-text)]">CJ</span>
+              {userAvatar ? (
+                <img
+                  src={userAvatar}
+                  alt={userName}
+                  className="h-7 w-7 rounded-full"
+                />
+              ) : (
+                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--chat-bg3)] text-[13px] text-[var(--chat-text)]">
+                  {userInitial}
+                </div>
+              )}
+              <span className="text-sm text-[var(--chat-text)]">{userName}</span>
             </div>
             <button
               onClick={handleLogout}

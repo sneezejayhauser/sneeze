@@ -21,6 +21,15 @@ interface ChatAppProps {
   apiKey: string;
   defaultSystemPrompt: string;
   availableSkillIds: string[];
+  user: {
+    id: string;
+    email?: string;
+    user_metadata?: {
+      avatar_url?: string;
+      full_name?: string;
+      name?: string;
+    };
+  } | null;
 }
 
 export default function ChatApp({
@@ -28,6 +37,7 @@ export default function ChatApp({
   apiKey,
   defaultSystemPrompt,
   availableSkillIds,
+  user,
 }: ChatAppProps) {
   return (
     <ChatProvider
@@ -35,6 +45,7 @@ export default function ChatApp({
       apiKey={apiKey}
       defaultSystemPrompt={defaultSystemPrompt}
       availableSkillIds={availableSkillIds}
+      user={user}
     >
       <div className="flex h-full w-full">
         <ChatBody />
