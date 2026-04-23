@@ -1,22 +1,24 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
-
-function subscribe(callback: () => void) {
-  const interval = setInterval(callback, 1000);
-  return () => clearInterval(interval);
-}
-
-function getServerSnapshot() {
-  return null;
-}
-
-function getSnapshot() {
-  return new Date();
-}
+import { useState, useEffect, useRef } from "react";
 
 export default function Clock() {
-  const date = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const [date, setDate] = useState<Date | null>(null);
+  const hasSetInitial = useRef(false);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setDate(new Date());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    if (!hasSetInitial.current) {
+      hasSetInitial.current = true;
+      setDate(new Date());
+    }
+  }, []);
 
   if (!date) return null;
 
