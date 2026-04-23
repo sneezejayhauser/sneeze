@@ -7,6 +7,16 @@ export interface ChatSettings {
   customModel: string;
 }
 
+export interface User {
+  id: string;
+  email?: string;
+  user_metadata?: {
+    avatar_url?: string;
+    full_name?: string;
+    name?: string;
+  };
+}
+
 export interface ChatContextValue {
   apiBaseUrl: string;
   apiKey: string;
@@ -15,6 +25,7 @@ export interface ChatContextValue {
   settings: ChatSettings;
   defaultSystemPrompt: string;
   availableSkillIds: string[];
+  user: User | null;
   setActiveView: (view: "chat" | "agent") => void;
   setCurrentConversationId: (id: string | null) => void;
   setSettings: (settings: ChatSettings) => void;
@@ -56,6 +67,7 @@ interface ChatProviderProps {
   apiKey: string;
   defaultSystemPrompt: string;
   availableSkillIds: string[];
+  user: User | null;
 }
 
 export function ChatProvider({ 
@@ -64,6 +76,7 @@ export function ChatProvider({
   apiKey,
   defaultSystemPrompt,
   availableSkillIds,
+  user,
 }: ChatProviderProps) {
   const [activeView, setActiveViewState] = useState<"chat" | "agent">("chat");
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
@@ -88,6 +101,7 @@ export function ChatProvider({
         settings,
         defaultSystemPrompt,
         availableSkillIds,
+        user,
         setActiveView,
         setCurrentConversationId,
         setSettings,

@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import type { ToolRun } from "@/utils/chat/tools";
+import { useChatContext } from "@/context/ChatContext";
 
 export interface ConversationMessage {
   role: "user" | "assistant" | "system";
@@ -20,35 +22,8 @@ export interface Conversation {
   title: string;
   messages: ConversationMessage[];
   model: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-const STORAGE_KEY = "cui_conversations";
-
-function loadConversations(): Conversation[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as Conversation[];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveConversations(conversations: Conversation[]) {
-  if (typeof window === "undefined") return;
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(conversations));
-  } catch {
-    // silent fail
-  }
-}
-
-function generateId(): string {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+  created_at: string;
+  updated_at: string;
 }
 
 const listeners = new Set<() => void>();
@@ -58,65 +33,172 @@ function notify() {
 }
 
 export function useConversations() {
-  const [conversations, setConversations] = useState<Conversation[]>(loadConversations);
+  const { user } = useChatContext();
+  
+  // Initialize to empty
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  // Loading will be updated after fetch completes
+  const [loading, setLoading] = useState(false);
+  
+  const supabase = createBrowserSupabaseClient();
+
+  // Fetch conversations when user changes
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
+
+    let cancelled = false;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    const setupSubscriptions = async () => {
+      // Subscribe to realtime changes first
+      channel = supabase
+        .channel("conversations_changes")
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "conversations",
+            filter: `user_id=eq.${user.id}`,
+          },
+          (payload) => {
+            if (cancelled) return;
+            if (payload.eventType === "INSERT") {
+              setConversations((prev) => [payload.new as Conversation, ...prev]);
+            } else if (payload.eventType === "UPDATE") {
+              setConversations((prev) =>
+                prev.map((c) =>
+                  c.id === payload.new.id ? (payload.new as Conversation) : c
+                )
+              );
+            } else if (payload.eventType === "DELETE") {
+              setConversations((prev) =>
+                prev.filter((c) => c.id !== payload.old.id)
+              );
+            }
+            notify();
+          }
+        )
+        .subscribe();
+
+      // Then fetch conversations
+      try {
+        const res = await fetch("/chat/api/conversations");
+        if (!cancelled && res.ok) {
+          const data = await res.json();
+          setConversations(data);
+        }
+      } catch {
+        // silent fail
+      } finally {
+        if (!cancelled) {
+          setLoading(true);
+        }
+      }
+    };
+
+    setupSubscriptions();
+
+    return () => {
+      cancelled = true;
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+    };
+  }, [user, supabase]);
 
   useEffect(() => {
-    const cb = () => setConversations(loadConversations());
+    const cb = () => {
+      // Trigger re-render for listeners
+    };
     listeners.add(cb);
     return () => {
       listeners.delete(cb);
     };
   }, []);
 
-  const persist = useCallback((next: Conversation[]) => {
-    setConversations(next);
-    saveConversations(next);
-    notify();
-  }, []);
-
   const createConversation = useCallback(
-    (model: string): Conversation => {
-      const current = loadConversations();
-      const conv: Conversation = {
-        id: generateId(),
-        title: "New chat",
-        messages: [],
-        model,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      persist([conv, ...current]);
-      return conv;
+    async (model: string): Promise<Conversation | null> => {
+      if (!user) return null;
+      try {
+        const res = await fetch("/chat/api/conversations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: "New chat",
+            model,
+          }),
+        });
+        if (res.ok) {
+          const conv = await res.json();
+          notify();
+          return conv;
+        }
+      } catch {
+        // silent fail
+      }
+      return null;
     },
-    [persist]
+    [user]
   );
 
   const deleteConversation = useCallback(
-    (id: string) => {
-      const current = loadConversations();
-      persist(current.filter((c) => c.id !== id));
+    async (id: string) => {
+      try {
+        const res = await fetch(`/chat/api/conversations/${id}`, {
+          method: "DELETE",
+        });
+        if (res.ok) {
+          setConversations((prev) => prev.filter((c) => c.id !== id));
+          notify();
+        }
+      } catch {
+        // silent fail
+      }
     },
-    [persist]
+    []
   );
 
   const updateConversation = useCallback(
-    (id: string, patch: Partial<Conversation>) => {
-      const current = loadConversations();
-      persist(
-        current.map((c) =>
-          c.id === id ? { ...c, ...patch, updatedAt: new Date().toISOString() } : c
-        )
-      );
+    async (id: string, patch: Partial<Conversation>) => {
+      try {
+        const res = await fetch(`/chat/api/conversations/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(patch),
+        });
+        if (res.ok) {
+          const updated = await res.json();
+          setConversations((prev) =>
+            prev.map((c) => (c.id === id ? updated : c))
+          );
+          notify();
+        }
+      } catch {
+        // silent fail
+      }
     },
-    [persist]
+    []
   );
 
-  const clearAll = useCallback(() => {
-    persist([]);
-  }, [persist]);
+  const clearAll = useCallback(async () => {
+    if (!user) return;
+    try {
+      for (const conv of conversations) {
+        await fetch(`/chat/api/conversations/${conv.id}`, { method: "DELETE" });
+      }
+      setConversations([]);
+      notify();
+    } catch {
+      // silent fail
+    }
+  }, [conversations, user]);
 
   return {
     conversations,
+    loading,
     createConversation,
     deleteConversation,
     updateConversation,
