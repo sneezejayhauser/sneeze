@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     .insert({
       user_id: user.id,
       title: title || "New chat",
-      model: model || "claude-sonnet-4-20250514",
+      model: model || "openai/gpt-4o",
     })
     .select()
     .single();

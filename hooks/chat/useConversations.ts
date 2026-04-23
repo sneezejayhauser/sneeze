@@ -33,91 +33,71 @@ function notify() {
 
 export function useConversations() {
   const { user, supabase } = useChatContext();
-  
-  // Initialize to empty
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  // Loading starts true (not yet loaded), set to false after fetch completes
-  const [loading, setLoading] = useState(true);
 
-  // Fetch conversations when user changes
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [loading, setLoading] = useState(false);
+
   useEffect(() => {
-    if (!user) {
-      return;
-    }
+    if (!user || !supabase) return;
 
     let cancelled = false;
-    let channel: ReturnType<typeof supabase.channel> | null = null;
 
-    const setupSubscriptions = async () => {
-      // Create channel first (without subscribing)
-      const conversationsChannel = supabase.channel("conversations_changes");
+    // Step 1: Create channel and attach ALL handlers synchronously BEFORE subscribe
+    const channel = supabase.channel(`conversations:${user.id}`);
 
-      // Register ALL handlers FIRST (synchronously) before subscribing
-      conversationsChannel.on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "conversations",
-          filter: `user_id=eq.${user.id}`,
-        },
-        (payload) => {
-          if (cancelled) return;
-          if (payload.eventType === "INSERT") {
-            setConversations((prev) => [payload.new as Conversation, ...prev]);
-          } else if (payload.eventType === "UPDATE") {
-            setConversations((prev) =>
-              prev.map((c) =>
-                c.id === payload.new.id ? (payload.new as Conversation) : c
-              )
-            );
-          } else if (payload.eventType === "DELETE") {
-            setConversations((prev) =>
-              prev.filter((c) => c.id !== payload.old.id)
-            );
-          }
-          notify();
+    channel.on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "conversations",
+        filter: `user_id=eq.${user.id}`,
+      },
+      (payload) => {
+        if (cancelled) return;
+        if (payload.eventType === "INSERT") {
+          setConversations((prev) => [payload.new as Conversation, ...prev]);
+        } else if (payload.eventType === "UPDATE") {
+          setConversations((prev) =>
+            prev.map((c) =>
+              c.id === payload.new.id ? (payload.new as Conversation) : c
+            )
+          );
+        } else if (payload.eventType === "DELETE") {
+          setConversations((prev) => prev.filter((c) => c.id !== payload.old.id));
         }
-      );
-
-      // THEN subscribe once - all handlers already registered
-      channel = conversationsChannel;
-      await conversationsChannel.subscribe();
-
-      // Fetch conversations after subscription is set up
-      try {
-        const res = await fetch("/chat/api/conversations");
-        if (!cancelled && res.ok) {
-          const data = await res.json();
-          setConversations(data);
-        }
-      } catch {
-        // silent fail
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+        notify();
       }
-    };
+    );
 
-    setupSubscriptions();
+    // Step 2: Subscribe AFTER all handlers are registered
+    channel.subscribe((status) => {
+      if (status === "SUBSCRIBED" && !cancelled) {
+        setLoading(true);
+        fetch("/chat/api/conversations")
+          .then((res) => res.ok ? res.json() : [])
+          .then((data) => {
+            if (!cancelled) setConversations(data);
+          })
+          .catch(() => {
+            if (!cancelled) setConversations([]);
+          })
+          .finally(() => {
+            if (!cancelled) setLoading(false);
+          });
+      }
+    });
 
     return () => {
       cancelled = true;
-      if (channel) {
-        supabase.removeChannel(channel);
-      }
+      supabase.removeChannel(channel);
     };
   }, [user, supabase]);
 
   useEffect(() => {
-    const cb = () => {
-      // Trigger re-render for listeners
-    };
+    const cb = () => {};
     listeners.add(cb);
-    return () => {
-      listeners.delete(cb);
-    };
+    return () => { listeners.delete(cb); };
   }, []);
 
   const createConversation = useCallback(
@@ -127,40 +107,28 @@ export function useConversations() {
         const res = await fetch("/chat/api/conversations", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            title: "New chat",
-            model,
-          }),
+          body: JSON.stringify({ title: "New chat", model }),
         });
         if (res.ok) {
           const conv = await res.json();
           notify();
           return conv;
         }
-      } catch {
-        // silent fail
-      }
+      } catch {}
       return null;
     },
     [user]
   );
 
-  const deleteConversation = useCallback(
-    async (id: string) => {
-      try {
-        const res = await fetch(`/chat/api/conversations/${id}`, {
-          method: "DELETE",
-        });
-        if (res.ok) {
-          setConversations((prev) => prev.filter((c) => c.id !== id));
-          notify();
-        }
-      } catch {
-        // silent fail
+  const deleteConversation = useCallback(async (id: string) => {
+    try {
+      const res = await fetch(`/chat/api/conversations/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setConversations((prev) => prev.filter((c) => c.id !== id));
+        notify();
       }
-    },
-    []
-  );
+    } catch {}
+  }, []);
 
   const updateConversation = useCallback(
     async (id: string, patch: Partial<Conversation>) => {
@@ -172,37 +140,22 @@ export function useConversations() {
         });
         if (res.ok) {
           const updated = await res.json();
-          setConversations((prev) =>
-            prev.map((c) => (c.id === id ? updated : c))
-          );
+          setConversations((prev) => prev.map((c) => (c.id === id ? updated : c)));
           notify();
         }
-      } catch {
-        // silent fail
-      }
+      } catch {}
     },
     []
   );
 
   const clearAll = useCallback(async () => {
     if (!user) return;
-    try {
-      for (const conv of conversations) {
-        await fetch(`/chat/api/conversations/${conv.id}`, { method: "DELETE" });
-      }
-      setConversations([]);
-      notify();
-    } catch {
-      // silent fail
+    for (const conv of conversations) {
+      await fetch(`/chat/api/conversations/${conv.id}`, { method: "DELETE" }).catch(() => {});
     }
+    setConversations([]);
+    notify();
   }, [conversations, user]);
 
-  return {
-    conversations,
-    loading,
-    createConversation,
-    deleteConversation,
-    updateConversation,
-    clearAll,
-  };
+  return { conversations, loading, createConversation, deleteConversation, updateConversation, clearAll };
 }

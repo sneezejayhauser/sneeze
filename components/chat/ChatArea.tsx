@@ -45,14 +45,14 @@ export default function ChatArea() {
       let model = conversation?.model;
 
       if (!convId) {
-        const newConv = await createConversation("gpt-4o");
+        const newConv = await createConversation("openai/gpt-4o");
         if (!newConv) return;
         convId = newConv.id;
         model = newConv.model;
         setCurrentConversationId(convId);
       }
 
-      if (!model) model = "gpt-4o";
+      if (!model) model = "openai/gpt-4o";
 
       const userMsg = { role: "user" as const, content: text, attachments };
 
