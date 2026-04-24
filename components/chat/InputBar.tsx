@@ -8,14 +8,18 @@ interface InputBarProps {
   disabled?: boolean;
   placeholder?: string;
   notice?: string | null;
+  floating?: boolean;
 }
 
-export default function InputBar({ onSend, disabled, placeholder, notice }: InputBarProps) {
+const STARTER_ACTIONS = ["Code", "Write", "Learn", "Life stuff", "Claude's choice"];
+
+export default function InputBar({ onSend, disabled, placeholder, notice, floating = false }: InputBarProps) {
   const [text, setText] = useState("");
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [comingSoon, setComingSoon] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const textAreaRef = useRef<HTMLTextAreaElement>(null);
 
   const hasText = text.trim().length > 0;
 
@@ -75,7 +79,7 @@ export default function InputBar({ onSend, disabled, placeholder, notice }: Inpu
   }, []);
 
   return (
-    <div className="border-t border-[var(--chat-border)] bg-[var(--chat-bg)] px-4 py-3 md:px-6">
+    <div className={`${floating ? "bg-transparent" : "border-t border-[var(--chat-border)] bg-[var(--chat-bg)]"} px-4 py-3 md:px-6`}>
       <div className="mx-auto max-w-3xl">
         {comingSoon && (
           <div className="mb-2 rounded-md bg-[var(--chat-accent-dim)] px-3 py-1.5 text-center text-xs text-[var(--chat-text2)]">
@@ -114,7 +118,7 @@ export default function InputBar({ onSend, disabled, placeholder, notice }: Inpu
           </div>
         )}
 
-        <div className="chat-input-pill flex items-end gap-2 px-3 py-2.5">
+        <div className={`chat-input-pill flex items-end gap-2 px-3 py-2.5 ${floating ? "chat-floating-input" : ""}`}>
           <div className="relative">
             <button
               onClick={() => setPopoverOpen((open) => !open)}
@@ -175,8 +179,16 @@ export default function InputBar({ onSend, disabled, placeholder, notice }: Inpu
           </div>
 
           <textarea
+            ref={textAreaRef}
             value={text}
-            onChange={(event) => setText(event.target.value)}
+            onChange={(event) => {
+              setText(event.target.value);
+              const el = textAreaRef.current;
+              if (el) {
+                el.style.height = "auto";
+                el.style.height = `${Math.min(el.scrollHeight, 128)}px`;
+              }
+            }}
             onKeyDown={handleKeyDown}
             placeholder={placeholder || "Message…"}
             rows={1}
@@ -207,8 +219,21 @@ export default function InputBar({ onSend, disabled, placeholder, notice }: Inpu
 
         {notice && <p className="mt-2 text-center text-[11px] text-[var(--chat-text3)]">{notice}</p>}
 
+        {floating && (
+          <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+            {STARTER_ACTIONS.map((action) => (
+              <span
+                key={action}
+                className="rounded-full border border-[var(--chat-border)] bg-[var(--chat-bg2)] px-3 py-1 text-[12px] text-[var(--chat-text2)]"
+              >
+                {action}
+              </span>
+            ))}
+          </div>
+        )}
+
         <p className="mt-2 text-center text-[11px] text-[var(--chat-text3)]">
-          Claude is AI and can make mistakes. Please double-check responses.
+          Press Enter to send · Shift+Enter for newline · AI can make mistakes.
         </p>
       </div>
 

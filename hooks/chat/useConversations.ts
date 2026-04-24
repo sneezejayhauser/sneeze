@@ -41,9 +41,26 @@ export function useConversations() {
     if (!user || !supabase) return;
 
     let cancelled = false;
+    const topic = `conversations:${user.id}:${Math.random().toString(36).slice(2)}`;
 
-    // Create channel and attach ALL handlers BEFORE subscribe
-    const channel = supabase.channel(`conversations:${user.id}`);
+    const loadConversations = () => {
+      setLoading(true);
+      fetch("/chat/api/conversations")
+        .then((res) => (res.ok ? res.json() : []))
+        .then((data) => {
+          if (!cancelled) setConversations(data);
+        })
+        .catch(() => {
+          if (!cancelled) setConversations([]);
+        })
+        .finally(() => {
+          if (!cancelled) setLoading(false);
+        });
+    };
+
+    // Create channel and attach ALL handlers BEFORE subscribe.
+    // Topic must be unique per mount; reusing an already-subscribed topic throws.
+    const channel = supabase.channel(topic);
 
     channel.on(
       "postgres_changes",
@@ -73,20 +90,12 @@ export function useConversations() {
     // Subscribe AFTER all handlers are registered
     channel.subscribe((status) => {
       if (status === "SUBSCRIBED" && !cancelled) {
-        setLoading(true);
-        fetch("/chat/api/conversations")
-          .then((res) => res.ok ? res.json() : [])
-          .then((data) => {
-            if (!cancelled) setConversations(data);
-          })
-          .catch(() => {
-            if (!cancelled) setConversations([]);
-          })
-          .finally(() => {
-            if (!cancelled) setLoading(false);
-          });
+        loadConversations();
       }
     });
+
+    // Keep UI functional even if realtime socket never reaches SUBSCRIBED.
+    loadConversations();
 
     return () => {
       cancelled = true;
