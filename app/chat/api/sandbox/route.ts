@@ -7,10 +7,16 @@ interface CreateSandboxResponse {
 }
 
 export async function POST(): Promise<NextResponse<CreateSandboxResponse>> {
-  // The sandbox is now created per-execution in the exec endpoint
-  // This endpoint is kept for backwards compatibility but returns a placeholder
-  return NextResponse.json({ 
-    sandboxId: "placeholder",
-    message: "Sandbox is now created per-execution. Use /chat/api/sandbox/exec directly."
+  const e2bApiKey = process.env.E2B_API_KEY;
+  if (!e2bApiKey) {
+    return NextResponse.json(
+      { sandboxId: null, error: "E2B_API_KEY not configured" },
+      { status: 500 }
+    );
+  }
+
+  return NextResponse.json({
+    sandboxId: "ephemeral",
+    message: "Sandbox checks passed. Execution uses short-lived per-request sandboxes.",
   });
 }

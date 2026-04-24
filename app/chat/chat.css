@@ -1,22 +1,26 @@
 @import "tailwindcss";
 
 .chat-root {
-  --chat-bg: #0f0f0f;
-  --chat-bg2: #1a1a1a;
-  --chat-bg3: #222222;
-  --chat-border: rgba(255, 255, 255, 0.07);
-  --chat-border2: rgba(255, 255, 255, 0.12);
-  --chat-text: #ccc9c0;
-  --chat-text2: #8a8780;
-  --chat-text3: #4a4845;
-  --chat-accent: #cc785c;
+  --chat-bg: #181818;
+  --chat-bg2: #242424;
+  --chat-bg3: #2d2d2d;
+  --chat-border: rgba(255, 255, 255, 0.08);
+  --chat-border2: rgba(255, 255, 255, 0.15);
+  --chat-text: #d8d2c8;
+  --chat-text2: #a39d92;
+  --chat-text3: #6d685f;
+  --chat-accent: #d1795a;
   --chat-accent-hover: #d4856a;
   --chat-accent-dim: rgba(204, 120, 92, 0.15);
   --chat-user-bubble: #1e1c19;
 
-  background: var(--chat-bg);
+  background: radial-gradient(circle at top, #202020 0%, #181818 45%, #151515 100%);
   color: var(--chat-text);
   font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.chat-shell {
+  background: radial-gradient(circle at center top, #232323 0%, #181818 55%, #141414 100%);
 }
 
 .chat-root,
@@ -49,13 +53,24 @@
 }
 
 .chat-input-pill {
-  border-radius: 9999px;
+  border-radius: 20px;
   border: 1px solid var(--chat-border);
-  background: var(--chat-bg2);
+  background: linear-gradient(180deg, #2b2b2b 0%, #262626 100%);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
 }
 
 .chat-input-pill:focus-within {
   border-color: var(--chat-border2);
+}
+
+.chat-floating-input {
+  border: 1px solid var(--chat-border2);
+  background: linear-gradient(180deg, #313131 0%, #292929 100%);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+}
+
+.chat-sidebar {
+  background: linear-gradient(180deg, #1c1c1c 0%, #171717 100%);
 }
 
 .chat-markdown p {

@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import { useChatContext } from "@/context/ChatContext";
 import { useConversations } from "@/hooks/chat/useConversations";
 import { useStreaming } from "@/hooks/chat/useStreaming";
+import { useSandbox } from "@/hooks/chat/useSandbox";
 import { useTools } from "@/hooks/chat/useTools";
 import { buildMessages, buildSystemPrompt } from "@/utils/chat/buildMessages";
 import { parseArtifacts } from "@/utils/chat/parseArtifacts";
@@ -35,9 +36,35 @@ export default function ChatArea() {
     startStream,
   } = useStreaming();
   const { enabledTools } = useTools();
+  const { status: sandboxStatus, sandboxId, createSandbox } = useSandbox();
   const [activeArtifact, setActiveArtifact] = useState<Artifact | null>(null);
 
   const conversation = conversations.find((c) => c.id === currentConversationId);
+
+  const runSandboxTool = useCallback(
+    async (
+      type: "bash" | "python" | "write_file" | "read_file" | "list_dir",
+      options: { code?: string; path?: string; content?: string }
+    ): Promise<{ result: string; error?: string }> => {
+      const ready = await createSandbox();
+      if (!ready) {
+        return { result: "", error: "Sandbox unavailable" };
+      }
+
+      const response = await fetch("/chat/api/sandbox/exec", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type, ...options }),
+      });
+
+      const data = (await response.json()) as { text?: string; error?: string };
+      return {
+        result: data.text || "",
+        error: data.error,
+      };
+    },
+    [createSandbox]
+  );
 
   const handleSend = useCallback(
     async (text: string, attachments: Attachment[]) => {
@@ -79,7 +106,14 @@ export default function ChatArea() {
 
       const built = buildMessages(payloadMessages);
 
-      const streamResult = await startStream(built, model, apiBaseUrl, apiKey, enabledTools);
+      const streamResult = await startStream(
+        built,
+        model,
+        apiBaseUrl,
+        apiKey,
+        enabledTools,
+        runSandboxTool
+      );
 
       const afterStreamMessages = [
         ...nextMessages,
@@ -101,6 +135,7 @@ export default function ChatArea() {
       defaultSystemPrompt,
       availableSkillIds,
       startStream,
+      runSandboxTool,
       apiBaseUrl,
       apiKey,
       setCurrentConversationId,
@@ -136,7 +171,8 @@ export default function ChatArea() {
         conversation.model,
         apiBaseUrl,
         apiKey,
-        enabledTools
+        enabledTools,
+        runSandboxTool
       );
       const finalMessages = [
         ...messagesUpTo,
@@ -154,6 +190,7 @@ export default function ChatArea() {
       defaultSystemPrompt,
       availableSkillIds,
       startStream,
+      runSandboxTool,
       apiBaseUrl,
       apiKey,
       updateConversation,
@@ -178,8 +215,21 @@ export default function ChatArea() {
   );
 
   return (
-    <div className="relative flex h-full flex-1 flex-col overflow-hidden bg-[var(--chat-bg)]">
-      <TitleBar onMenuClick={() => {}} />
+    <div className="chat-shell relative flex h-full flex-1 flex-col overflow-hidden bg-[var(--chat-bg)]">
+      <TitleBar
+        onMenuClick={() => {}}
+        conversation={conversation}
+        onModelChange={(model) => {
+          if (!conversation) return;
+          updateConversation(conversation.id, { model });
+        }}
+        onTitleChange={(title) => {
+          if (!conversation) return;
+          updateConversation(conversation.id, { title });
+        }}
+        sandboxStatus={sandboxStatus}
+        sandboxId={sandboxId}
+      />
       {conversation ? (
         <MessageList
           messages={conversation.messages}
@@ -201,7 +251,8 @@ export default function ChatArea() {
         onSend={handleSend}
         disabled={!done}
         notice={toolsUnavailableNote}
-        placeholder={conversation ? "Message Claude…" : "Start a new chat…"}
+        placeholder={conversation ? "Message Claude…" : "How can I help you today?"}
+        floating={!conversation}
       />
       {activeArtifact && (
         <ArtifactPanel artifact={activeArtifact} onClose={() => setActiveArtifact(null)} />

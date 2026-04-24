@@ -16,6 +16,7 @@ export interface SandboxExecResult {
 export function useSandbox() {
   const [status, setStatus] = useState<SandboxStatus>("idle");
   const [error, setError] = useState<string | null>(null);
+  const [sandboxId, setSandboxId] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const createSandbox = useCallback(async (): Promise<string | null> => {
@@ -23,10 +24,15 @@ export function useSandbox() {
     setError(null);
 
     try {
-      // The sandbox is now created internally by the exec endpoint
-      // We just track that we're ready to execute
+      const response = await fetch("/chat/api/sandbox", { method: "POST" });
+      const data = (await response.json()) as { sandboxId?: string | null; error?: string };
+      if (!response.ok) {
+        throw new Error(data.error || `HTTP ${response.status}`);
+      }
+
+      setSandboxId(data.sandboxId ?? null);
       setStatus("ready");
-      return "ready";
+      return data.sandboxId ?? "ephemeral";
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to initialize sandbox";
       setError(message);
@@ -49,6 +55,7 @@ export function useSandbox() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            type: language === "bash" ? "bash" : "python",
             code,
             language,
           }),
@@ -92,6 +99,7 @@ export function useSandbox() {
   return {
     status,
     error,
+    sandboxId,
     createSandbox,
     runCode,
     runPython,

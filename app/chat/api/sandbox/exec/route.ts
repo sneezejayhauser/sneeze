@@ -2,8 +2,11 @@ import { NextResponse } from "next/server";
 import { Sandbox } from "@e2b/code-interpreter";
 
 interface RunCodeRequest {
-  code: string;
+  type?: "python" | "bash" | "write_file" | "read_file" | "list_dir";
+  code?: string;
   language?: string;
+  path?: string;
+  content?: string;
 }
 
 interface RunCodeResponse {
@@ -20,11 +23,7 @@ export async function POST(request: Request): Promise<NextResponse<RunCodeRespon
 
   try {
     const body = (await request.json()) as RunCodeRequest;
-    const { code, language = "python" } = body;
-
-    if (!code) {
-      return NextResponse.json({ error: "Missing code" }, { status: 400 });
-    }
+    const { type = "python", code, language = "python", path, content } = body;
 
     const e2bApiKey = process.env.E2B_API_KEY;
 
@@ -38,9 +37,60 @@ export async function POST(request: Request): Promise<NextResponse<RunCodeRespon
     });
 
     try {
-      // Run the code with the specified language
+      if (type === "bash") {
+        if (!code?.trim()) {
+          return NextResponse.json({ error: "Missing command" }, { status: 400 });
+        }
+
+        const cmd = await sandbox.commands.run(code);
+        const text = [cmd.stdout.trim(), cmd.stderr.trim()].filter(Boolean).join("\n\n");
+        if (cmd.exitCode !== 0) {
+          return NextResponse.json({
+            error: cmd.error || `Command failed with exit code ${cmd.exitCode}`,
+            logs: { stdout: [cmd.stdout], stderr: [cmd.stderr] },
+          });
+        }
+
+        return NextResponse.json({
+          text: text || "Command executed successfully",
+          logs: { stdout: [cmd.stdout], stderr: [cmd.stderr] },
+        });
+      }
+
+      if (type === "write_file") {
+        if (!path?.trim()) {
+          return NextResponse.json({ error: "Missing path" }, { status: 400 });
+        }
+        await sandbox.files.write(path, content ?? "");
+        return NextResponse.json({
+          text: `File written successfully: ${path}`,
+          logs: { stdout: [], stderr: [] },
+        });
+      }
+
+      if (type === "read_file") {
+        if (!path?.trim()) {
+          return NextResponse.json({ error: "Missing path" }, { status: 400 });
+        }
+        const text = await sandbox.files.read(path);
+        return NextResponse.json({ text, logs: { stdout: [], stderr: [] } });
+      }
+
+      if (type === "list_dir") {
+        const entries = await sandbox.files.list(path?.trim() || ".");
+        const text = entries
+          .map((entry) => `${entry.type === "dir" ? "d" : "-"} ${entry.name}`)
+          .join("\n");
+        return NextResponse.json({ text: text || "No files found", logs: { stdout: [], stderr: [] } });
+      }
+
+      if (!code?.trim()) {
+        return NextResponse.json({ error: "Missing code" }, { status: 400 });
+      }
+
+      // Run python/javascript code
       const execution = await sandbox.runCode(code, {
-        language: language as "python" | "javascript",
+        language: (language === "javascript" ? "javascript" : "python") as "python" | "javascript",
       });
 
       // Handle execution error

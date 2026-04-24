@@ -2,13 +2,16 @@
 
 import { useState, useCallback } from "react";
 import { useChatContext } from "@/context/ChatContext";
-import { useConversations } from "@/hooks/chat/useConversations";
+import type { Conversation } from "@/hooks/chat/useConversations";
 import ModelSelector from "./ModelSelector";
 import SettingsModal from "./SettingsModal";
 import type { SandboxStatus } from "@/hooks/chat/useSandbox";
 
 interface TitleBarProps {
   onMenuClick: () => void;
+  conversation?: Conversation;
+  onModelChange: (model: string) => void;
+  onTitleChange: (title: string) => void;
   sandboxStatus?: SandboxStatus;
   sandboxId?: string | null;
 }
@@ -21,23 +24,18 @@ const SANDBOX_STATUS_CONFIG: Record<SandboxStatus, { label: string; color: strin
   destroying: { label: "Sandbox: Destroying...", color: "text-yellow-500" },
 };
 
-export default function TitleBar({ onMenuClick, sandboxStatus = "idle", sandboxId }: TitleBarProps) {
-  const { apiBaseUrl, apiKey, currentConversationId } = useChatContext();
-  const { conversations, updateConversation } = useConversations();
+export default function TitleBar({
+  onMenuClick,
+  conversation,
+  onModelChange,
+  onTitleChange,
+  sandboxStatus = "idle",
+  sandboxId,
+}: TitleBarProps) {
+  const { apiBaseUrl, apiKey } = useChatContext();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState("");
-
-  const conversation = conversations.find((item) => item.id === currentConversationId);
-
-  const handleModelChange = useCallback(
-    (model: string) => {
-      if (currentConversationId) {
-        updateConversation(currentConversationId, { model });
-      }
-    },
-    [currentConversationId, updateConversation]
-  );
 
   const startEdit = useCallback(() => {
     if (!conversation) return;
@@ -46,11 +44,11 @@ export default function TitleBar({ onMenuClick, sandboxStatus = "idle", sandboxI
   }, [conversation]);
 
   const commitEdit = useCallback(() => {
-    if (currentConversationId && editValue.trim()) {
-      updateConversation(currentConversationId, { title: editValue.trim() });
+    if (editValue.trim()) {
+      onTitleChange(editValue.trim());
     }
     setEditing(false);
-  }, [currentConversationId, editValue, updateConversation]);
+  }, [editValue, onTitleChange]);
 
   const sandboxConfig = SANDBOX_STATUS_CONFIG[sandboxStatus];
 
@@ -102,11 +100,11 @@ export default function TitleBar({ onMenuClick, sandboxStatus = "idle", sandboxI
                 apiBaseUrl={apiBaseUrl}
                 apiKey={apiKey}
                 value={conversation.model}
-                onChange={handleModelChange}
+                onChange={onModelChange}
               />
             )}
             <span
-              className={`text-xs ${sandboxConfig.color}`}
+              className={`rounded-full border border-[var(--chat-border)] px-2 py-0.5 text-xs ${sandboxConfig.color}`}
               title={sandboxId ? `Sandbox ID: ${sandboxId}` : sandboxConfig.label}
             >
               {sandboxConfig.label}

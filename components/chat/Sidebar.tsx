@@ -38,12 +38,12 @@ export default function Sidebar() {
       )}
 
       <aside
-        className={`chat-sidebar flex h-full w-64 flex-col border-r border-[var(--chat-border)] bg-[var(--chat-bg)] ${
+        className={`chat-sidebar flex h-full w-64 flex-col border-r border-[var(--chat-border)] ${
           mobileOpen ? "open" : ""
         } md:static md:translate-x-0`}
       >
         <div className="flex items-center justify-between px-4 py-3">
-          <span className="text-[15px] font-medium text-[#e8e6e1]">CUI</span>
+          <span className="text-[24px] font-light tracking-tight text-[#ece6dc]">Claude</span>
           <button
             onClick={handleNewChat}
             className="rounded-md p-1.5 text-[var(--chat-text3)] transition-colors hover:text-[var(--chat-text)]"
@@ -76,7 +76,7 @@ export default function Sidebar() {
               value=""
               onFocus={() => setSearchOpen(true)}
               onClick={() => setSearchOpen(true)}
-              placeholder="Search chats"
+              placeholder="Search"
               className="w-full bg-transparent text-sm text-[var(--chat-text2)] outline-none placeholder:text-[var(--chat-text3)]"
             />
           </div>
