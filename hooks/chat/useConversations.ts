@@ -31,6 +31,27 @@ function notify() {
   listeners.forEach((cb) => cb());
 }
 
+function normalizeConversation(raw: Partial<Conversation> | null | undefined): Conversation | null {
+  if (!raw?.id) return null;
+
+  return {
+    id: raw.id,
+    title: typeof raw.title === "string" ? raw.title : "New chat",
+    messages: Array.isArray(raw.messages) ? raw.messages : [],
+    model: typeof raw.model === "string" ? raw.model : "",
+    created_at: typeof raw.created_at === "string" ? raw.created_at : "",
+    updated_at: typeof raw.updated_at === "string" ? raw.updated_at : "",
+  };
+}
+
+function normalizeConversationList(raw: unknown): Conversation[] {
+  if (!Array.isArray(raw)) return [];
+
+  return raw
+    .map((item) => normalizeConversation(item as Partial<Conversation>))
+    .filter((item): item is Conversation => Boolean(item));
+}
+
 export function useConversations() {
   const { user, supabase } = useChatContext();
 
@@ -48,7 +69,7 @@ export function useConversations() {
       fetch("/chat/api/conversations")
         .then((res) => (res.ok ? res.json() : []))
         .then((data) => {
-          if (!cancelled) setConversations(data);
+          if (!cancelled) setConversations(normalizeConversationList(data));
         })
         .catch(() => {
           if (!cancelled) setConversations([]);
@@ -73,11 +94,15 @@ export function useConversations() {
       (payload) => {
         if (cancelled) return;
         if (payload.eventType === "INSERT") {
-          setConversations((prev) => [payload.new as Conversation, ...prev]);
+          const inserted = normalizeConversation(payload.new as Partial<Conversation>);
+          if (!inserted) return;
+          setConversations((prev) => [inserted, ...prev]);
         } else if (payload.eventType === "UPDATE") {
+          const updated = normalizeConversation(payload.new as Partial<Conversation>);
+          if (!updated) return;
           setConversations((prev) =>
             prev.map((c) =>
-              c.id === payload.new.id ? (payload.new as Conversation) : c
+              c.id === updated.id ? updated : c
             )
           );
         } else if (payload.eventType === "DELETE") {
@@ -119,7 +144,8 @@ export function useConversations() {
           body: JSON.stringify({ title: "New chat", model }),
         });
         if (res.ok) {
-          const conv = await res.json();
+          const conv = normalizeConversation((await res.json()) as Partial<Conversation>);
+          if (!conv) return null;
           notify();
           return conv;
         }
@@ -148,7 +174,8 @@ export function useConversations() {
           body: JSON.stringify(patch),
         });
         if (res.ok) {
-          const updated = await res.json();
+          const updated = normalizeConversation((await res.json()) as Partial<Conversation>);
+          if (!updated) return;
           setConversations((prev) => prev.map((c) => (c.id === id ? updated : c)));
           notify();
         }
