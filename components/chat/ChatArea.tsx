@@ -8,6 +8,7 @@ import { useSandbox } from "@/hooks/chat/useSandbox";
 import { useTools } from "@/hooks/chat/useTools";
 import { buildMessages, buildSystemPrompt } from "@/utils/chat/buildMessages";
 import { parseArtifacts } from "@/utils/chat/parseArtifacts";
+import { getDefaultModelForProvider, normalizeModelForProvider } from "@/utils/chat/modelResolver";
 import type { Attachment } from "@/utils/chat/buildMessages";
 import TitleBar from "./TitleBar";
 import MessageList from "./MessageList";
@@ -70,16 +71,18 @@ export default function ChatArea() {
     async (text: string, attachments: Attachment[]) => {
       let convId = currentConversationId;
       let model = conversation?.model;
+      const fallbackModel = getDefaultModelForProvider(apiBaseUrl);
 
       if (!convId) {
-        const newConv = await createConversation("openai/gpt-4o");
+        const newConv = await createConversation(fallbackModel);
         if (!newConv) return;
         convId = newConv.id;
         model = newConv.model;
         setCurrentConversationId(convId);
       }
 
-      if (!model) model = "openai/gpt-4o";
+      if (!model) model = fallbackModel;
+      model = normalizeModelForProvider(model, apiBaseUrl);
 
       const userMsg = { role: "user" as const, content: text, attachments };
 
@@ -168,7 +171,7 @@ export default function ChatArea() {
       const built = buildMessages(payloadMessages);
       const streamResult = await startStream(
         built,
-        conversation.model,
+        normalizeModelForProvider(conversation.model, apiBaseUrl),
         apiBaseUrl,
         apiKey,
         enabledTools,
@@ -221,7 +224,9 @@ export default function ChatArea() {
         conversation={conversation}
         onModelChange={(model) => {
           if (!conversation) return;
-          updateConversation(conversation.id, { model });
+          updateConversation(conversation.id, {
+            model: normalizeModelForProvider(model, apiBaseUrl),
+          });
         }}
         onTitleChange={(title) => {
           if (!conversation) return;

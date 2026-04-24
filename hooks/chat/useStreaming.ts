@@ -41,6 +41,7 @@ interface StreamCompletionResult {
   finishReason: string | null;
   toolCalls: ToolCallInfo[];
   status: number;
+  errorMessage: string | null;
 }
 
 interface StartStreamResult {
@@ -105,11 +106,26 @@ export function useStreaming() {
       });
 
       if (!res.ok) {
+        let errorMessage: string | null = null;
+        try {
+          const errorData = (await res.json()) as { error?: { message?: string } | string; message?: string };
+          if (typeof errorData.error === "string") {
+            errorMessage = errorData.error;
+          } else if (errorData.error?.message) {
+            errorMessage = errorData.error.message;
+          } else if (errorData.message) {
+            errorMessage = errorData.message;
+          }
+        } catch {
+          // ignore parse errors
+        }
+
         return {
           content: "",
           finishReason: null,
           toolCalls: [],
           status: res.status,
+          errorMessage,
         };
       }
 
@@ -192,6 +208,7 @@ export function useStreaming() {
         finishReason: finishReason ?? (toolCalls.length > 0 ? "tool_calls" : null),
         toolCalls,
         status: res.status,
+        errorMessage: null,
       };
     },
     []
@@ -245,7 +262,8 @@ export function useStreaming() {
           }
 
           if (completion.status >= 400) {
-            throw new Error(`HTTP ${completion.status}`);
+            const suffix = completion.errorMessage ? `: ${completion.errorMessage}` : "";
+            throw new Error(`HTTP ${completion.status}${suffix}`);
           }
 
           if (

@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { normalizeModelForProvider } from "@/utils/chat/modelResolver";
 
 export async function GET(
   request: Request,
@@ -40,16 +41,33 @@ export async function PATCH(
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await request.json();
+  const updatePayload: Record<string, unknown> = {
+    updated_at: new Date().toISOString(),
+  };
+
+  if (typeof body.title === "string") {
+    updatePayload.title = body.title;
+  }
+  if (typeof body.model === "string") {
+    const apiBaseUrl = process.env.API_BASE_URL || "";
+    updatePayload.model = normalizeModelForProvider(body.model, apiBaseUrl);
+  }
+  if (Array.isArray(body.messages)) {
+    updatePayload.messages = body.messages;
+  }
 
   const { data, error } = await supabase
     .from("conversations")
-    .update({ ...body, updated_at: new Date().toISOString() })
+    .update(updatePayload)
     .eq("id", id)
     .eq("user_id", user.id)
     .select()
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    const status = error.code === "PGRST116" ? 404 : 500;
+    return NextResponse.json({ error: error.message }, { status });
+  }
   return NextResponse.json(data);
 }
 

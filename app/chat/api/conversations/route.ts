@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { getDefaultModelForProvider, normalizeModelForProvider } from "@/utils/chat/modelResolver";
 
 export async function GET() {
   const supabase = await createClient();
@@ -22,13 +23,18 @@ export async function POST(request: Request) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { title, model } = await request.json();
+  const apiBaseUrl = process.env.API_BASE_URL || "";
+  const resolvedModel = normalizeModelForProvider(
+    typeof model === "string" ? model : getDefaultModelForProvider(apiBaseUrl),
+    apiBaseUrl
+  );
 
   const { data, error } = await supabase
     .from("conversations")
     .insert({
       user_id: user.id,
       title: title || "New chat",
-      model: model || "openai/gpt-4o",
+      model: resolvedModel,
     })
     .select()
     .single();

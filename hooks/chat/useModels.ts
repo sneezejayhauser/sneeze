@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { getDefaultModelForProvider, isPollinationsApiBaseUrl } from "@/utils/chat/modelResolver";
 
 export interface ModelInfo {
   id: string;
@@ -11,12 +12,17 @@ interface ModelResponse {
   data: ModelInfo[];
 }
 
-const FALLBACK_MODELS: ModelInfo[] = [
-  { id: "claude-sonnet-4-5", object: "model" },
-  { id: "gpt-4o", object: "model" },
-  { id: "gpt-4o-mini", object: "model" },
-  { id: "claude-3-opus", object: "model" },
-  { id: "claude-3-haiku", object: "model" },
+const OPENAI_COMPAT_FALLBACK_MODELS: ModelInfo[] = [
+  { id: "openai/gpt-4o", object: "model" },
+  { id: "openai/gpt-4o-mini", object: "model" },
+  { id: "anthropic/claude-sonnet-4-5", object: "model" },
+];
+
+const POLLINATIONS_FALLBACK_MODELS: ModelInfo[] = [
+  { id: "openai", object: "model" },
+  { id: "openai-fast", object: "model" },
+  { id: "claude", object: "model" },
+  { id: "gemini", object: "model" },
 ];
 
 const MODEL_KEY = "cui_model";
@@ -41,9 +47,14 @@ function saveStoredModel(model: string) {
 }
 
 export function useModels(apiBaseUrl: string, apiKey: string) {
-  const [models, setModels] = useState<ModelInfo[]>(FALLBACK_MODELS);
+  const fallbackModels = isPollinationsApiBaseUrl(apiBaseUrl)
+    ? POLLINATIONS_FALLBACK_MODELS
+    : OPENAI_COMPAT_FALLBACK_MODELS;
+  const defaultModel = getDefaultModelForProvider(apiBaseUrl);
+
+  const [models, setModels] = useState<ModelInfo[]>(fallbackModels);
   const [selectedModel, setSelectedModelState] = useState<string>(
-    () => loadStoredModel() || FALLBACK_MODELS[0].id
+    () => loadStoredModel() || defaultModel
   );
   const [loading, setLoading] = useState(false);
   const fetchedRef = useRef(false);
@@ -69,21 +80,22 @@ export function useModels(apiBaseUrl: string, apiKey: string) {
         const list =
           Array.isArray(data?.data) && data.data.length > 0
             ? data.data
-            : FALLBACK_MODELS;
+            : fallbackModels;
         setModels(list);
         const stored = loadStoredModel();
         if (!stored || !list.some((m) => m.id === stored)) {
-          setSelectedModelState(list[0].id);
-          saveStoredModel(list[0].id);
+          const nextModel = list.find((m) => m.id === defaultModel)?.id ?? list[0].id;
+          setSelectedModelState(nextModel);
+          saveStoredModel(nextModel);
         }
       })
       .catch(() => {
-        setModels(FALLBACK_MODELS);
+        setModels(fallbackModels);
       })
       .finally(() => {
         setLoading(false);
       });
-  }, [apiBaseUrl, apiKey]);
+  }, [apiBaseUrl, apiKey, defaultModel, fallbackModels]);
 
   const customModel =
     (typeof window !== "undefined" && localStorage.getItem(CUSTOM_MODEL_KEY)) ||
