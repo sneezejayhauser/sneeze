@@ -16,7 +16,7 @@ const ACTIVITY_ICONS: Record<ActivityItem["type"], string> = {
 };
 
 const ACTIVITY_COLORS: Record<ActivityItem["type"], string> = {
-  deploy: "text-sky-400",
+  deploy: "text-amber-400",
   commit: "text-emerald-400",
   alert: "text-amber-400",
   note: "text-slate-400",
@@ -60,7 +60,7 @@ export default async function AdminPage() {
             {adminStats.map((stat) => (
               <div
                 key={stat.id}
-                className="rounded-xl border border-slate-700/60 bg-slate-800/40 p-5 flex flex-col gap-2"
+                className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-5 flex flex-col gap-2"
               >
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-medium text-slate-400">
@@ -101,7 +101,7 @@ export default async function AdminPage() {
             {serviceChecks.map((check) => (
               <div
                 key={check.id}
-                className="rounded-lg border border-slate-700/60 bg-slate-800/40 px-4 py-3 flex items-center justify-between gap-3"
+                className="rounded-xl border border-white/10 bg-white/[0.03] backdrop-blur-xl px-4 py-3 flex items-center justify-between gap-3"
               >
                 <div className="flex items-center gap-2">
                   <span
@@ -130,10 +130,10 @@ export default async function AdminPage() {
           <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-500 mb-4">
             Recent activity
           </h2>
-          <ol className="relative border-l border-slate-700/60 space-y-0">
+          <ol className="relative border-l border-white/10 space-y-0">
             {activityFeed.map((item) => (
               <li key={item.id} className="ml-4 pb-6 last:pb-0">
-                <span className="absolute -left-2 flex h-4 w-4 items-center justify-center rounded-full bg-slate-800 border border-slate-700/60 text-xs">
+                <span className="absolute -left-2 flex h-4 w-4 items-center justify-center rounded-full bg-[#050a08] border border-white/10 text-xs">
                   {ACTIVITY_ICONS[item.type]}
                 </span>
                 <div className="ml-2">

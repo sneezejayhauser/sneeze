@@ -24,13 +24,13 @@ export default async function LinksPage() {
                 href={link.url}
                 target={link.url.startsWith("mailto:") ? undefined : "_blank"}
                 rel={link.url.startsWith("mailto:") ? undefined : "noopener noreferrer"}
-                className="flex items-center gap-4 w-full rounded-xl border border-slate-700/60 bg-slate-800/40 px-5 py-4 hover:border-sky-500/40 hover:bg-slate-800/80 transition-all group"
+                className="flex items-center gap-4 w-full rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl px-5 py-4 hover:border-amber-500/40 transition-all group"
               >
                 {link.icon && (
                   <span className="text-2xl shrink-0">{link.icon}</span>
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium group-hover:text-sky-400 transition-colors">
+                  <p className="font-medium group-hover:text-amber-400 transition-colors">
                     {link.label}
                   </p>
                   {link.description && (
@@ -40,7 +40,7 @@ export default async function LinksPage() {
                   )}
                 </div>
                 <svg
-                  className="h-4 w-4 text-slate-600 group-hover:text-sky-400 shrink-0 transition-colors"
+                  className="h-4 w-4 text-slate-600 group-hover:text-amber-400 shrink-0 transition-colors"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"

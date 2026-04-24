@@ -10,6 +10,56 @@
 
 import type { Project } from "@/lib/mock-data";
 
+// ── Language colors (GitHub-like) ────────────────────────────────────────────
+
+const LANGUAGE_COLORS: Record<string, string> = {
+  TypeScript: "#3178c6",
+  JavaScript: "#f1e05a",
+  Python: "#3572A5",
+  Go: "#00ADD8",
+  Rust: "#dea584",
+  Ruby: "#701516",
+  Java: "#b07219",
+  "C++": "#f34b7d",
+  C: "#555555",
+  "C#": "#178600",
+  PHP: "#4F5D95",
+  Shell: "#89e051",
+  Swift: "#ffac45",
+  Kotlin: "#A97BFF",
+  Dart: "#00B4AB",
+  Vue: "#41b883",
+  HTML: "#e34c26",
+  CSS: "#563d7c",
+};
+
+function getLanguageColor(language: string | null): string | undefined {
+  if (!language) return undefined;
+  return LANGUAGE_COLORS[language] ?? "#8b949e";
+}
+
+// ── Relative time formatter ──────────────────────────────────────────────────
+
+export function formatRelativeTime(iso: string): string {
+  const date = new Date(iso);
+  const now = new Date();
+  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  if (seconds < 60) return `${seconds}s ago`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  const weeks = Math.floor(days / 7);
+  if (weeks < 4) return `${weeks}w ago`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months}mo ago`;
+  const years = Math.floor(days / 365);
+  return `${years}y ago`;
+}
+
 // ── GitHub REST API response shape (subset we care about) ─────────────────────
 
 interface GitHubRepo {
@@ -23,6 +73,8 @@ interface GitHubRepo {
   fork: boolean;
   pushed_at: string;
   language: string | null;
+  stargazers_count: number;
+  forks_count: number;
 }
 
 // ── Mapping ───────────────────────────────────────────────────────────────────
@@ -54,6 +106,10 @@ function repoToProject(repo: GitHubRepo): Project {
     repo: repo.html_url,
     url: repo.homepage ?? undefined,
     status,
+    stars: repo.stargazers_count,
+    forks: repo.forks_count,
+    languageColor: getLanguageColor(repo.language),
+    pushedAt: repo.pushed_at,
   };
 }
 

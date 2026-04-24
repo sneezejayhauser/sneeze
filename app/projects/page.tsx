@@ -2,12 +2,12 @@ import { headers } from "next/headers";
 import Layout from "@/components/Layout";
 import { getSubdomainFromHost } from "@/lib/subdomain";
 import { projects as mockProjects } from "@/lib/mock-data";
-import { fetchOrgRepos } from "@/lib/github";
+import { fetchOrgRepos, formatRelativeTime } from "@/lib/github";
 
 const STATUS_COLORS: Record<string, string> = {
   active: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
   wip: "text-amber-400 bg-amber-500/10 border-amber-500/20",
-  archived: "text-slate-400 bg-slate-500/10 border-slate-500/20",
+  archived: "text-slate-400 bg-white/5 border-white/10",
 };
 
 export default async function ProjectsPage() {
@@ -34,7 +34,7 @@ export default async function ProjectsPage() {
               href="https://github.com/CloudCompile"
               target="_blank"
               rel="noopener noreferrer"
-              className="shrink-0 flex items-center gap-1.5 text-sm text-slate-400 hover:text-sky-400 transition-colors"
+              className="shrink-0 flex items-center gap-1.5 text-sm text-slate-400 hover:text-amber-400 transition-colors"
             >
               <span>🐙</span>
               <span>CloudCompile on GitHub</span>
@@ -52,7 +52,7 @@ export default async function ProjectsPage() {
           {projects.map((project) => (
             <div
               key={project.id}
-              className="rounded-xl border border-slate-700/60 bg-slate-800/40 p-5 flex flex-col gap-3 hover:border-sky-500/30 transition-colors"
+              className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-5 flex flex-col gap-3 hover:border-amber-500/20 transition-colors"
             >
               <div className="flex items-center justify-between gap-3">
                 <h2 className="font-semibold text-lg">{project.title}</h2>
@@ -70,13 +70,35 @@ export default async function ProjectsPage() {
                   {project.tags.map((tag) => (
                     <span
                       key={tag}
-                      className="text-xs bg-slate-700/60 text-slate-300 px-2 py-0.5 rounded-md"
+                      className="text-xs bg-white/5 text-slate-300 px-2 py-0.5 rounded-md"
                     >
                       {tag}
                     </span>
                   ))}
                 </div>
               )}
+
+              {/* Enriched metadata row */}
+              <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                {project.languageColor && (
+                  <span className="flex items-center gap-1">
+                    <span
+                      className="h-2.5 w-2.5 rounded-full"
+                      style={{ backgroundColor: project.languageColor }}
+                    />
+                    <span>{project.tags[0]}</span>
+                  </span>
+                )}
+                {typeof project.stars === "number" && (
+                  <span>⭐ {project.stars}</span>
+                )}
+                {typeof project.forks === "number" && project.forks > 0 && (
+                  <span>🍴 {project.forks}</span>
+                )}
+                {project.pushedAt && (
+                  <span>Updated {formatRelativeTime(project.pushedAt)}</span>
+                )}
+              </div>
 
               {(project.url || project.repo) && (
                 <div className="flex gap-3 text-sm pt-1">
@@ -85,7 +107,7 @@ export default async function ProjectsPage() {
                       href={project.repo}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-sky-400 hover:text-sky-300 transition-colors"
+                      className="text-amber-400 hover:text-orange-300 transition-colors"
                     >
                       Repo →
                     </a>
@@ -95,7 +117,7 @@ export default async function ProjectsPage() {
                       href={project.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-sky-400 hover:text-sky-300 transition-colors"
+                      className="text-amber-400 hover:text-orange-300 transition-colors"
                     >
                       Live →
                     </a>
@@ -109,4 +131,3 @@ export default async function ProjectsPage() {
     </Layout>
   );
 }
-

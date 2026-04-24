@@ -36,14 +36,14 @@ export default function Navbar({ current }: NavbarProps) {
   }, []);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-slate-700/60 bg-slate-900/80 backdrop-blur-md">
+    <header className="sticky top-0 z-50 border-b border-white/10 bg-[#030806]/60 backdrop-blur-md">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
         {/* Logo */}
         <a
           href={getSubdomainHref("home")}
-          className="text-lg font-bold tracking-tight text-white hover:text-sky-400 transition-colors"
+          className="text-lg font-bold tracking-tight text-white hover:text-amber-400 transition-colors"
         >
-          cjhauser<span className="text-sky-400">.me</span>
+          cjhauser<span className="text-amber-400">.me</span>
         </a>
 
         {/* Desktop nav */}
@@ -56,8 +56,8 @@ export default function Navbar({ current }: NavbarProps) {
                 href={getSubdomainHref(key)}
                 className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                   isActive
-                    ? "bg-sky-500/20 text-sky-400"
-                    : "text-slate-300 hover:text-white hover:bg-slate-700/60"
+                    ? "bg-amber-500/10 text-amber-400"
+                    : "text-slate-300 hover:text-white hover:bg-white/5"
                 }`}
               >
                 {label}
@@ -99,7 +99,7 @@ export default function Navbar({ current }: NavbarProps) {
 
       {/* Mobile menu */}
       {menuOpen && (
-        <div className="md:hidden border-t border-slate-700/60 px-4 pb-3 pt-2 space-y-1">
+        <div className="md:hidden border-t border-white/10 px-4 pb-3 pt-2 space-y-1 bg-[#030806]/60 backdrop-blur-md">
           {NAV_ITEMS.map(({ key, label }) => {
             const isActive = key === current;
             return (
@@ -109,8 +109,8 @@ export default function Navbar({ current }: NavbarProps) {
                 onClick={() => setMenuOpen(false)}
                 className={`block px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                   isActive
-                    ? "bg-sky-500/20 text-sky-400"
-                    : "text-slate-300 hover:text-white hover:bg-slate-700/60"
+                    ? "bg-amber-500/10 text-amber-400"
+                    : "text-slate-300 hover:text-white hover:bg-white/5"
                 }`}
               >
                 {label}

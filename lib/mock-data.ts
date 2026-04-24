@@ -15,6 +15,10 @@ export interface Project {
   url?: string;
   repo?: string;
   status: "active" | "archived" | "wip";
+  stars?: number;
+  forks?: number;
+  languageColor?: string;
+  pushedAt?: string;
 }
 
 export const projects: Project[] = [
@@ -25,6 +29,10 @@ export const projects: Project[] = [
     tags: ["Next.js", "TypeScript", "Vercel"],
     repo: "https://github.com/CloudCompile/sneeze",
     status: "active",
+    stars: 12,
+    forks: 2,
+    languageColor: "#3178c6",
+    pushedAt: "2025-04-21T21:30:00Z",
   },
   {
     id: "cloudcompile",
@@ -33,6 +41,9 @@ export const projects: Project[] = [
     tags: ["Open Source", "GitHub"],
     url: "https://github.com/CloudCompile",
     status: "active",
+    stars: 8,
+    languageColor: "#cccccc",
+    pushedAt: "2025-04-20T14:00:00Z",
   },
   {
     id: "subdomain-router",
@@ -40,6 +51,9 @@ export const projects: Project[] = [
     description: "Lightweight Next.js middleware utility for routing requests to different app modules based on hostname.",
     tags: ["Next.js", "Middleware", "TypeScript"],
     status: "wip",
+    stars: 3,
+    languageColor: "#3178c6",
+    pushedAt: "2025-04-15T09:05:00Z",
   },
   {
     id: "devdash",
@@ -47,6 +61,9 @@ export const projects: Project[] = [
     description: "Personal admin dashboard for monitoring deployments, service health, and site analytics at a glance.",
     tags: ["Dashboard", "Next.js", "TypeScript"],
     status: "wip",
+    stars: 1,
+    languageColor: "#3178c6",
+    pushedAt: "2025-03-28T18:22:00Z",
   },
 ];
 

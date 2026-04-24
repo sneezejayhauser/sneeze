@@ -22,7 +22,7 @@ export default async function LabPage() {
           {experiments.map((exp) => (
             <li
               key={exp.id}
-              className="rounded-xl border border-slate-700/60 bg-slate-800/40 p-5 hover:border-sky-500/30 transition-colors"
+              className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-5 hover:border-amber-500/20 transition-colors"
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-1">
@@ -32,7 +32,7 @@ export default async function LabPage() {
                         href={exp.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="hover:text-sky-400 transition-colors"
+                        className="hover:text-amber-400 transition-colors"
                       >
                         {exp.title} →
                       </a>
@@ -54,7 +54,7 @@ export default async function LabPage() {
                 {exp.tags.map((tag) => (
                   <span
                     key={tag}
-                    className="text-xs bg-slate-700/60 text-slate-300 px-2 py-0.5 rounded-md"
+                    className="text-xs bg-white/5 text-slate-300 px-2 py-0.5 rounded-md"
                   >
                     {tag}
                   </span>

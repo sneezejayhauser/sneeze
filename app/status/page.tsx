@@ -75,7 +75,7 @@ export default async function StatusPage() {
             return (
               <div
                 key={check.id}
-                className="rounded-xl border border-slate-700/60 bg-slate-800/40 px-5 py-4 flex items-center justify-between gap-4"
+                className="rounded-xl border border-white/10 bg-white/[0.03] backdrop-blur-xl px-5 py-4 flex items-center justify-between gap-4"
               >
                 <div className="flex items-center gap-3">
                   <span className={`h-2.5 w-2.5 rounded-full shrink-0 ${cfg.dot}`} />

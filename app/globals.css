@@ -14,13 +14,14 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
+    --background: #020403;
     --foreground: #ededed;
   }
 }
 
 body {
-  background: var(--background);
+  background: radial-gradient(ellipse 80% 50% at 50% -10%, #0f2418, #020403);
+  background-attachment: fixed;
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }

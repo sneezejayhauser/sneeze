@@ -43,7 +43,7 @@ export default async function HomePage() {
             <a
               key={label}
               href={href}
-              className="flex flex-col items-center gap-2 rounded-xl border border-slate-700/60 bg-slate-800/40 px-6 py-5 hover:border-sky-500/40 hover:bg-slate-800/80 transition-all"
+              className="flex flex-col items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl px-6 py-5 hover:border-amber-500/40 transition-all"
             >
               <span className="text-2xl">{emoji}</span>
               <span className="text-sm font-medium text-slate-300">{label}</span>
@@ -54,7 +54,7 @@ export default async function HomePage() {
         <div className="mt-4 text-sm text-slate-500">
           <a
             href="mailto:sneeze@cjhauser.me"
-            className="hover:text-sky-400 transition-colors"
+            className="hover:text-amber-400 transition-colors"
           >
             sneeze@cjhauser.me
           </a>
@@ -62,7 +62,7 @@ export default async function HomePage() {
       </section>
 
       {/* About / skills section */}
-      <section className="mt-16 border-t border-slate-800 pt-12 space-y-8 max-w-2xl mx-auto text-center">
+      <section className="mt-16 border-t border-white/10 pt-12 space-y-8 max-w-2xl mx-auto text-center">
         <div>
           <h2 className="text-2xl font-bold tracking-tight mb-3">About me</h2>
           <p className="text-slate-400 leading-relaxed">
@@ -79,7 +79,7 @@ export default async function HomePage() {
             {SKILLS.map((skill) => (
               <span
                 key={skill}
-                className="text-sm bg-slate-800/60 border border-slate-700/60 text-slate-300 px-3 py-1 rounded-full"
+                className="text-sm bg-white/5 border border-white/10 text-slate-300 px-3 py-1 rounded-full"
               >
                 {skill}
               </span>
@@ -92,19 +92,19 @@ export default async function HomePage() {
             href="https://github.com/CloudCompile"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-2 text-slate-400 hover:text-sky-400 transition-colors"
+            className="flex items-center gap-2 text-slate-400 hover:text-amber-400 transition-colors"
           >
             <span>🐙</span> GitHub
           </a>
           <a
             href="https://projects.cjhauser.me"
-            className="flex items-center gap-2 text-slate-400 hover:text-sky-400 transition-colors"
+            className="flex items-center gap-2 text-slate-400 hover:text-amber-400 transition-colors"
           >
             <span>🔨</span> Projects
           </a>
           <a
             href="mailto:sneeze@cjhauser.me"
-            className="flex items-center gap-2 text-slate-400 hover:text-sky-400 transition-colors"
+            className="flex items-center gap-2 text-slate-400 hover:text-amber-400 transition-colors"
           >
             <span>✉️</span> Email
           </a>
@@ -113,4 +113,3 @@ export default async function HomePage() {
     </Layout>
   );
 }
-
