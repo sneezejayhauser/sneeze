@@ -44,11 +44,12 @@ export default function TitleBar({
   }, [conversation]);
 
   const commitEdit = useCallback(() => {
-    if (editValue.trim()) {
-      onTitleChange(editValue.trim());
+    const trimmed = editValue.trim();
+    if (trimmed && trimmed !== conversation?.title) {
+      onTitleChange(trimmed);
     }
     setEditing(false);
-  }, [editValue, onTitleChange]);
+  }, [editValue, onTitleChange, conversation]);
 
   const sandboxConfig = SANDBOX_STATUS_CONFIG[sandboxStatus];
 

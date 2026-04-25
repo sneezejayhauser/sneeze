@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import type { ToolRun } from "@/utils/chat/tools";
 
 interface ToolCallCardProps {
@@ -14,6 +14,10 @@ function truncateText(value: string, max = 60) {
 
 export default function ToolCallCard({ toolRun }: ToolCallCardProps) {
   const [open, setOpen] = useState(toolRun.status === "running");
+
+  useEffect(() => {
+    setOpen(toolRun.status === "running");
+  }, [toolRun.status]);
 
   const preview = useMemo(() => truncateText(toolRun.inputPreview), [toolRun.inputPreview]);
 

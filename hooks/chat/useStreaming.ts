@@ -238,9 +238,14 @@ export function useStreaming() {
       const workingMessages = [...messages] as Array<Record<string, unknown>>;
       const completedToolRuns: ToolRun[] = [];
       let activeTools = [...tools];
+      let toolCallDepth = 0;
+      const MAX_TOOL_CALL_DEPTH = 10;
 
       try {
         while (true) {
+          if (toolCallDepth >= MAX_TOOL_CALL_DEPTH) {
+            throw new Error("Max tool call depth exceeded");
+          }
           setState((prev) => ({ ...prev, content: "", done: false }));
           contentRef.current = "";
 
@@ -284,6 +289,7 @@ export function useStreaming() {
               })),
             });
 
+            toolCallDepth++;
             for (const toolCall of completion.toolCalls) {
               const args = parseToolArguments(toolCall.arguments);
               const inputPreview = getToolInputPreview(toolCall.name, args);

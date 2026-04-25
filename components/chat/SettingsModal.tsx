@@ -46,8 +46,8 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
     onClose();
   }, [systemPrompt, customModel, draftTools, setSettings, setToolSettings, onClose]);
 
-  const handleClear = useCallback(() => {
-    clearAll();
+  const handleClear = useCallback(async () => {
+    await clearAll();
     setShowClearConfirm(false);
     onClose();
   }, [clearAll, onClose]);

@@ -50,6 +50,8 @@ export default function Message({
     navigator.clipboard.writeText(content).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    }).catch(() => {
+      // ignore clipboard errors
     });
   }, [content]);
 

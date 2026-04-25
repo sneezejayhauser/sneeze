@@ -19,12 +19,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Bad request signature" }, { status: 401 });
   }
 
-  const interaction = JSON.parse(body) as {
+  let interaction: {
     type: number;
     data?: { name?: string; options?: Array<{ name: string; value: unknown }> };
     guild_id?: string;
     member?: { user?: { id?: string } };
   };
+  try {
+    interaction = JSON.parse(body);
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
 
   if (interaction.type === 1) {
     return NextResponse.json({ type: 1 });

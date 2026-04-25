@@ -6,7 +6,7 @@ export interface Attachment {
 }
 
 export interface Message {
-  role: "user" | "assistant" | "system";
+  role: "user" | "assistant" | "system" | "tool";
   content: string;
   attachments?: Attachment[];
 }
@@ -23,6 +23,10 @@ export function buildMessages(messages: Message[]): Array<{
   return messages.map((msg) => {
     if (msg.role === "system") {
       return { role: "system", content: msg.content };
+    }
+
+    if (msg.role === "tool") {
+      return { role: "tool", content: msg.content };
     }
 
     if (!msg.attachments || msg.attachments.length === 0) {

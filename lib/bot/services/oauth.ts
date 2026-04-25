@@ -34,7 +34,10 @@ function decodeSession(value: string): SessionPayload | null {
   if (!payload || !signature) return null;
 
   const expectedSignature = sign(payload);
-  if (!timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))) {
+  const sigBuf = Buffer.from(signature);
+  const expBuf = Buffer.from(expectedSignature);
+  if (sigBuf.length !== expBuf.length) return null;
+  if (!timingSafeEqual(sigBuf, expBuf)) {
     return null;
   }
 

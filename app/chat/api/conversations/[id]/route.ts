@@ -19,7 +19,7 @@ function normalizeMessages(input: unknown): Array<{
   if (!Array.isArray(input)) return [];
 
   return input
-    .filter((msg): msg is ConversationMessage => typeof msg === "object" && msg !== null)
+    .filter((msg): msg is ConversationMessage => typeof msg === "object" && msg !== null && !Array.isArray(msg))
     .map((msg) => ({
       // conversation_id is filled later
       conversation_id: "",
@@ -101,20 +101,12 @@ export async function PATCH(
         conversation_id: id,
       }));
 
-      const { error: deleteError } = await supabase
+      const { error: upsertError } = await supabase
         .from("messages")
-        .delete()
-        .eq("conversation_id", id);
+        .upsert(normalized, { onConflict: "id" });
 
-      if (deleteError) {
-        return NextResponse.json({ error: deleteError.message }, { status: 500 });
-      }
-
-      if (normalized.length > 0) {
-        const { error: insertError } = await supabase.from("messages").insert(normalized);
-        if (insertError) {
-          return NextResponse.json({ error: insertError.message }, { status: 500 });
-        }
+      if (upsertError) {
+        return NextResponse.json({ error: upsertError.message }, { status: 500 });
       }
     }
 
@@ -147,6 +139,9 @@ export async function DELETE(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { error: msgDeleteError } = await supabase.from("messages").delete().eq("conversation_id", id);
+  if (msgDeleteError) return NextResponse.json({ error: msgDeleteError.message }, { status: 500 });
 
   const { error } = await supabase.from("conversations").delete().eq("id", id).eq("user_id", user.id);
 

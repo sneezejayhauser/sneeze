@@ -8,7 +8,8 @@ interface RouteParams {
 }
 
 function getSkillPath(id: string): string {
-  return path.join(process.cwd(), "chat-config", "skills", id, "SKILL.md");
+  const safeId = path.basename(id);
+  return path.join(process.cwd(), "chat-config", "skills", safeId, "SKILL.md");
 }
 
 export async function GET(request: Request, { params }: RouteParams) {

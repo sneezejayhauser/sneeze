@@ -3,21 +3,13 @@
 import { useState, useEffect, useRef } from "react";
 
 export default function Clock() {
-  const [date, setDate] = useState<Date | null>(null);
-  const hasSetInitial = useRef(false);
+  const [date, setDate] = useState<Date | null>(new Date());
 
   useEffect(() => {
     const interval = setInterval(() => {
       setDate(new Date());
     }, 1000);
     return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    if (!hasSetInitial.current) {
-      hasSetInitial.current = true;
-      setDate(new Date());
-    }
   }, []);
 
   if (!date) return null;

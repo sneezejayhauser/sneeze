@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 export default function LoginScreen() {
@@ -9,7 +9,7 @@ export default function LoginScreen() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   const handleSignIn = useCallback(
     async (event: React.FormEvent) => {

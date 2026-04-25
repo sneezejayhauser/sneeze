@@ -21,3 +21,14 @@ export function getBotDb() {
   }
   return g.__botDb;
 }
+
+export function closeBotDb() {
+  if (g.__botDb) {
+    try {
+      g.__botDb.close();
+    } catch {
+      // ignore
+    }
+    g.__botDb = undefined;
+  }
+}

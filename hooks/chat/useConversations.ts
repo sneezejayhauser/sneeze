@@ -102,7 +102,7 @@ export function useConversations() {
           if (!updated) return;
           setConversations((prev) =>
             prev.map((c) =>
-              c.id === updated.id ? updated : c
+              c.id === updated.id ? { ...c, ...updated, messages: c.messages } : c
             )
           );
         } else if (payload.eventType === "DELETE") {
@@ -129,7 +129,9 @@ export function useConversations() {
   }, [user, supabase]);
 
   useEffect(() => {
-    const cb = () => {};
+    const cb = () => {
+      setConversations((prev) => [...prev]);
+    };
     listeners.add(cb);
     return () => { listeners.delete(cb); };
   }, []);

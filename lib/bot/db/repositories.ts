@@ -1,6 +1,6 @@
 import { ensureBotMigrations } from "@/lib/bot/db/migrations";
 import { getBotDb } from "@/lib/bot/db/client";
-import { GuildPreset, GuildSettings } from "@/lib/bot/types/schema";
+import { GuildPreset, GuildSettings, WarningRecord } from "@/lib/bot/types/schema";
 
 function db() {
   ensureBotMigrations();
@@ -8,14 +8,19 @@ function db() {
 }
 
 function mapGuild(row: Record<string, unknown>): GuildSettings {
+  const validPreset = (row.preset as string) ?? "custom";
+  const preset: GuildPreset = ["community", "moderation", "economy", "social", "custom"].includes(validPreset)
+    ? (validPreset as GuildPreset)
+    : "custom";
+
   return {
     guildId: String(row.guild_id),
     name: (row.name as string | null) ?? null,
-    preset: row.preset as GuildPreset,
+    preset,
     setupCompletedAt: (row.setup_completed_at as string | null) ?? null,
-    setupVersion: Number(row.setup_version),
+    setupVersion: Number(row.setup_version) || 1,
     levelingEnabled: Boolean(row.leveling_enabled),
-    levelingMultiplier: Number(row.leveling_multiplier),
+    levelingMultiplier: Number(row.leveling_multiplier) || 1,
     economyEnabled: Boolean(row.economy_enabled),
     profilesEnabled: Boolean(row.profiles_enabled),
     modLogChannelId: (row.mod_log_channel_id as string | null) ?? null,
@@ -74,7 +79,7 @@ export const guildRepo = {
         setupCompletedAt: patch.setupCompletedAt ?? current.setupCompletedAt,
         setupVersion: patch.setupVersion ?? current.setupVersion,
         levelingEnabled: Number(patch.levelingEnabled ?? current.levelingEnabled),
-        levelingMultiplier: patch.levelingMultiplier ?? current.levelingMultiplier,
+        levelingMultiplier: Number(patch.levelingMultiplier ?? current.levelingMultiplier) || 1,
         economyEnabled: Number(patch.economyEnabled ?? current.economyEnabled),
         profilesEnabled: Number(patch.profilesEnabled ?? current.profilesEnabled),
         modLogChannelId: patch.modLogChannelId ?? current.modLogChannelId,
@@ -89,11 +94,11 @@ export const warningRepo = {
   add(guildId: string, userId: string, moderatorId: string, reason: string) {
     db().prepare("INSERT INTO warnings (guild_id, user_id, moderator_id, reason) VALUES (?, ?, ?, ?)").run(guildId, userId, moderatorId, reason);
   },
-  list(guildId: string, userId?: string) {
+  list(guildId: string, userId?: string): WarningRecord[] {
     if (userId) {
-      return db().prepare("SELECT * FROM warnings WHERE guild_id = ? AND user_id = ? ORDER BY created_at DESC").all(guildId, userId);
+      return db().prepare("SELECT * FROM warnings WHERE guild_id = ? AND user_id = ? ORDER BY created_at DESC").all(guildId, userId) as WarningRecord[];
     }
-    return db().prepare("SELECT * FROM warnings WHERE guild_id = ? ORDER BY created_at DESC LIMIT 100").all(guildId);
+    return db().prepare("SELECT * FROM warnings WHERE guild_id = ? ORDER BY created_at DESC LIMIT 100").all(guildId) as WarningRecord[];
   },
   clear(guildId: string, userId: string) {
     return db().prepare("DELETE FROM warnings WHERE guild_id = ? AND user_id = ?").run(guildId, userId).changes;

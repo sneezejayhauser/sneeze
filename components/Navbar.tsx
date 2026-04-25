@@ -16,6 +16,7 @@ const NAV_ITEMS: NavItem[] = [
   { key: "links", label: "Links" },
   { key: "admin", label: "Admin" },
   { key: "chat", label: "Chat" },
+  { key: "adie", label: "Adie" },
   { key: "nb", label: "Bot" },
 ];
 

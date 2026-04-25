@@ -25,7 +25,13 @@ export function GuildSettingsEditor({ guildId }: { guildId: string }) {
   const [data, setData] = useState<GuildData | null>(null);
 
   useEffect(() => {
-    fetch(`/api/nb/guilds/${guildId}`, { cache: "no-store" }).then(async (res) => setData(await res.json()));
+    fetch(`/api/nb/guilds/${guildId}`, { cache: "no-store" })
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then((payload) => setData(payload))
+      .catch(() => setData(null));
   }, [guildId]);
 
   async function save(patch: Record<string, unknown>) {

@@ -65,8 +65,6 @@ export function useModels(apiBaseUrl: string, apiKey: string) {
   }, []);
 
   useEffect(() => {
-    if (fetchedRef.current) return;
-    fetchedRef.current = true;
     setLoading(true);
 
     fetch(`${apiBaseUrl}/v1/models`, {

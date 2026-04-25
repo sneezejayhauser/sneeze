@@ -31,8 +31,7 @@ export default function SearchModal({ onClose }: SearchModalProps) {
     const normalized = query.toLowerCase();
     return conversations.filter(
       (conversation) =>
-        conversation.title.toLowerCase().includes(normalized) ||
-        conversation.messages.some((message) => message.content.toLowerCase().includes(normalized))
+        conversation.title.toLowerCase().includes(normalized)
     );
   }, [query, conversations]);
 

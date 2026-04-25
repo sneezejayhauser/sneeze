@@ -20,7 +20,11 @@ export default function Sidebar() {
 
   const handleLogout = useCallback(async () => {
     const supabase = createClient();
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      // ignore
+    }
     window.location.reload();
   }, []);
 

@@ -70,11 +70,11 @@ export default function ArtifactPanel({ artifact, onClose }: ArtifactPanelProps)
             title={artifact.filename}
             srcDoc={
               artifact.type === "svg"
-                ? `<!DOCTYPE html><html><body style=\"margin:0;background:#0f0f0f\">${artifact.content}</body></html>`
-                : artifact.content
+                ? `<!DOCTYPE html><html><body style=\"margin:0;background:#0f0f0f\">${artifact.content.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")}</body></html>`
+                : artifact.content.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
             }
             className="h-full min-h-[400px] w-full border-0"
-            sandbox="allow-scripts"
+            sandbox=""
           />
         )}
       </div>

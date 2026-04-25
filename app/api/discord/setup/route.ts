@@ -12,7 +12,11 @@ const SetupSchema = z.object({
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
-  const payload = SetupSchema.parse(await request.json());
+  const parsed = SetupSchema.safeParse(await request.json());
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.format() }, { status: 400 });
+  }
+  const payload = parsed.data;
   const result = runSafeSetup(payload.guildId, payload.preset, {
     roles: payload.existingRoles,
     channels: payload.existingChannels,

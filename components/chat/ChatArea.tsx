@@ -83,6 +83,9 @@ export default function ChatArea() {
 
       if (!model) model = fallbackModel;
       model = normalizeModelForProvider(model, apiBaseUrl);
+      if (!model) {
+        throw new Error("No valid model selected");
+      }
 
       const userMsg = { role: "user" as const, content: text, attachments };
 

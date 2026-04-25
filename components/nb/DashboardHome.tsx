@@ -15,8 +15,12 @@ export function DashboardHome() {
 
   useEffect(() => {
     fetch("/api/nb/me", { cache: "no-store" })
-      .then((res) => res.json())
-      .then((payload) => setData(payload));
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then((payload) => setData(payload))
+      .catch(() => setData({ authenticated: false, user: null, guilds: [] }));
   }, []);
 
   if (!data) return <p className="p-8">Loading dashboard…</p>;

@@ -35,7 +35,7 @@ export default function InputBar({ onSend, disabled, placeholder, notice, floati
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-      if (event.key === "Enter" && !event.shiftKey) {
+      if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
         event.preventDefault();
         handleSend();
       }
@@ -61,6 +61,9 @@ export default function InputBar({ onSend, disabled, placeholder, notice, floati
             type: file.type,
           },
         ]);
+      };
+      reader.onerror = () => {
+        console.error("Failed to read file:", file.name);
       };
       reader.readAsDataURL(file);
     });

@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useMemo, type ReactNode } from "react";
 import { createClient as createSupabaseClient } from "@/lib/supabase/client";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -85,7 +85,7 @@ export function ChatProvider({
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const [settings, setSettingsState] = useState<ChatSettings>(loadSettings);
 
-  const supabase = createSupabaseClient();
+  const supabase = useMemo(() => createSupabaseClient(), []);
 
   const setActiveView = useCallback((view: "chat" | "agent") => {
     setActiveViewState(view);
