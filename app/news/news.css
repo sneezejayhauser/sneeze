@@ -146,6 +146,52 @@ body.light-mode::before {
 .light-mode .article-body { background: rgba(255,255,255,0.5); border-color: rgba(0,0,0,0.05); }
 .article-body p { margin-bottom: 1.5rem; }
 .article-body h3 { font-size: 1.5rem; margin: 2rem 0 1rem; font-weight: 700; }
+.article-body .md-h1,
+.article-body .md-h2,
+.article-body .md-h3 {
+  margin: 2rem 0 1rem;
+  line-height: 1.2;
+  font-weight: 700;
+}
+.article-body .md-h1 { font-size: 2rem; }
+.article-body .md-h2 { font-size: 1.7rem; }
+.article-body .md-h3 { font-size: 1.4rem; }
+.article-body .md-paragraph { margin-bottom: 1.2rem; }
+.article-body .md-list {
+  margin: 0.5rem 0 1.5rem 1.5rem;
+}
+.article-body .md-list li { margin-bottom: 0.5rem; }
+.article-body .md-blockquote {
+  border-left: 3px solid rgba(100, 180, 255, 0.5);
+  padding-left: 1rem;
+  opacity: 0.9;
+  margin-bottom: 1.25rem;
+}
+.article-body .md-code {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  border-radius: 12px;
+  background: rgba(0,0,0,0.35);
+  border: 1px solid rgba(255,255,255,0.1);
+  overflow-x: auto;
+}
+.article-body .md-figure {
+  margin: 1rem 0 1.75rem;
+}
+.article-body .md-image {
+  width: 100%;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.article-body .md-caption {
+  text-align: center;
+  opacity: 0.65;
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+}
+.markdown-preview {
+  margin-bottom: 1rem;
+}
 .cta-section {
   padding: 3rem; border-radius: 28px; backdrop-filter: blur(48px);
   background: rgba(0,0,0,0.22); border: 1px solid rgba(255,255,255,0.1);
