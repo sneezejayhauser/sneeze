@@ -6,6 +6,11 @@ export async function middleware(request: NextRequest) {
   const subdomain = getSubdomainFromHost(host);
   const { pathname } = request.nextUrl;
 
+  // Exclude API routes from subdomain rewriting
+  if (pathname.startsWith("/api/")) {
+    return NextResponse.next();
+  }
+
   // Apply subdomain proxy logic
   const subdomainPath = subdomain === "home" ? "/" : `/${subdomain}`;
   const isAlreadyOnSubdomainPath = pathname.startsWith(subdomainPath) && subdomain !== "home";
