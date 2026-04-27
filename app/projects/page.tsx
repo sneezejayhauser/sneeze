@@ -80,7 +80,7 @@ export default async function ProjectsPage() {
 
               {/* Enriched metadata row */}
               <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
-                {project.languageColor && (
+                {project.languageColor && project.tags.length > 0 && (
                   <span className="flex items-center gap-1">
                     <span
                       className="h-2.5 w-2.5 rounded-full"

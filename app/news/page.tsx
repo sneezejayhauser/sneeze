@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { safeJsonParse, safeAt } from "@/lib/safety";
 
 interface Article {
   id: string;
@@ -47,7 +48,7 @@ export default function NewsPage() {
   const [isDarkMode, setIsDarkMode] = useState(() => {
     if (typeof window === "undefined") return true;
     const saved = localStorage.getItem("signal-darkMode");
-    return saved ? (JSON.parse(saved) as boolean) : true;
+    return safeJsonParse(saved, true) as boolean;
   });
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -72,9 +73,15 @@ export default function NewsPage() {
     fetch("/api/news/articles")
       .then((res) => {
         if (!res.ok) throw new Error("Failed to load articles");
-        return res.json() as Promise<Article[]>;
+        return res.json();
       })
-      .then((data) => setArticles(data))
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setArticles(data as Article[]);
+        } else {
+          throw new Error("Invalid articles format");
+        }
+      })
       .catch((err: unknown) =>
         setError(err instanceof Error ? err.message : "Failed to load articles")
       )
@@ -246,8 +253,10 @@ export default function NewsPage() {
     const title = selectedArticle.title;
 
     if (platform === "copy") {
-      navigator.clipboard.writeText(url);
-      alert("Link copied!");
+      navigator.clipboard
+        .writeText(url)
+        .then(() => alert("Link copied!"))
+        .catch(() => alert("Failed to copy link"));
     } else if (platform === "twitter") {
       window.open(
         `https://twitter.com/intent/tweet?text="${title}" on Signal&url=${url}`,
@@ -295,6 +304,7 @@ export default function NewsPage() {
           <div className="modal" style={{ maxWidth: "400px" }}>
             <h2 style={{ marginBottom: "1rem" }}>Admin Access</h2>
             <form onSubmit={handleAdminLogin}>
+              <input type="text" name="username" style={{ display: "none" }} autoComplete="username" />
               <div className="form-group">
                 <label>Password</label>
                 <input
@@ -302,7 +312,7 @@ export default function NewsPage() {
                   value={adminPassword}
                   onChange={(e) => setAdminPassword(e.target.value)}
                   placeholder="Enter password"
-                  autoComplete="new-password"
+                  autoComplete="current-password"
                   autoFocus
                 />
               </div>

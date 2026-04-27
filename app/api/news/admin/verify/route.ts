@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { verifyPassword } from "@/lib/validation";
 
 export async function POST(request: NextRequest) {
   try {
@@ -8,7 +9,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Password required" }, { status: 400 });
     }
 
-    if (adminPassword !== process.env.NEWS_ADMIN_PASSWORD) {
+    if (
+      !verifyPassword(adminPassword, process.env.NEWS_ADMIN_PASSWORD ?? "")
+    ) {
       return NextResponse.json({ error: "Invalid password" }, { status: 401 });
     }
 
