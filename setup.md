@@ -25,7 +25,7 @@ Go to your Vercel project → **Settings → Environment Variables** and add the
 | `NEXT_PUBLIC_SUPABASE_URL` | `https://xsbcsorbeganuzyqzesh.supabase.co` | Already set if chat was configured. |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | *(anon key)* | Already set if chat was configured. |
 | `SUPABASE_SERVICE_ROLE_KEY` | *(service role key)* | **Server-side only.** Never expose to clients. |
-| `NEWS_ADMIN_PASSWORD` | `signal2026` | Password for the Signal admin panel. Change this to something strong! |
+| `NEWS_ADMIN_PASSWORD` | `<YOUR_STRONG_PASSWORD>` | Password for the Signal admin panel. Must be set to a strong, unique value. |
 
 > **Note:** `SUPABASE_SERVICE_ROLE_KEY` and `NEWS_ADMIN_PASSWORD` must **not** be prefixed with `NEXT_PUBLIC_` — they are server-side only.
 
@@ -68,15 +68,16 @@ Push (or trigger a redeploy) from the Vercel dashboard. The new `app/news/` rout
 - **Publishing / deleting** articles goes through `/api/news/articles` which verifies `NEWS_ADMIN_PASSWORD` server-side, then uses the service role key to write to Supabase.
 - **Email subscriptions** go through `/api/news/subscribe` which uses the service role key to write to `news_subscribers`. Duplicate emails are handled gracefully.
 - **Dark mode** is still stored in `localStorage` (intentional).
-- **Admin panel** is accessible at `news.cjhauser.me/#admin` with password `signal2026`.
+- **Admin panel** is accessible at `news.cjhauser.me/#admin` with the password configured in `NEWS_ADMIN_PASSWORD`.
 
 ---
 
 ## Changing the Admin Password
 
 1. Update `NEWS_ADMIN_PASSWORD` in Vercel environment variables.
-2. Update the `ADMIN_PASSWORD` constant in `app/news/page.tsx`.
-3. Redeploy.
+2. Redeploy.
+
+The password is verified server-side only through the `/api/news/admin/verify` endpoint, so only the environment variable needs to be updated.
 
 ---
 
