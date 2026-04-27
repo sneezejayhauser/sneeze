@@ -14,7 +14,7 @@
  * Unknown / localhost fallback → "home"
  */
 
-export type SubdomainKey = "home" | "projects" | "lab" | "status" | "links" | "admin" | "chat" | "adie" | "nb";
+export type SubdomainKey = "home" | "projects" | "lab" | "status" | "links" | "admin" | "adie" | "news";
 
 const ROOT_DOMAIN = "cjhauser.me";
 
@@ -24,9 +24,8 @@ const SUBDOMAIN_MAP: Record<string, SubdomainKey> = {
   status: "status",
   links: "links",
   admin: "admin",
-  chat: "chat",
   adie: "adie",
-  nb: "nb",
+  news: "news",
 };
 
 /**

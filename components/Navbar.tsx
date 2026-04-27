@@ -15,9 +15,8 @@ const NAV_ITEMS: NavItem[] = [
   { key: "status", label: "Status" },
   { key: "links", label: "Links" },
   { key: "admin", label: "Admin" },
-  { key: "chat", label: "Chat" },
   { key: "adie", label: "Adie" },
-  { key: "nb", label: "Bot" },
+  { key: "news", label: "News" },
 ];
 
 interface NavbarProps {
