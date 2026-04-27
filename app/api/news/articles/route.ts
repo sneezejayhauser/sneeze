@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { verifyPassword, validateArticleBody, sanitizeText } from "@/lib/validation";
+import { NewsArticleSchema } from "@/lib/types";
 
 function getServiceClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -44,12 +46,17 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { adminPassword, title, category, date, excerpt, tags, author, read_time, body: articleBody } = body;
 
-    if (adminPassword !== process.env.NEWS_ADMIN_PASSWORD) {
+    if (!verifyPassword(adminPassword ?? "", process.env.NEWS_ADMIN_PASSWORD ?? "")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     if (!title || !excerpt || !articleBody) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
+    const bodyValidation = validateArticleBody(articleBody);
+    if (!bodyValidation.valid) {
+      return NextResponse.json({ error: bodyValidation.error }, { status: 400 });
     }
 
     const supabase = getServiceClient();

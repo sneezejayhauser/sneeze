@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { validateEmail } from "@/lib/validation";
 
 function getServiceClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -20,37 +21,59 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Valid email required" }, { status: 400 });
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (!validateEmail(email)) {
       return NextResponse.json({ error: "Invalid email format" }, { status: 400 });
     }
 
     const supabase = getServiceClient();
+    const normalizedEmail = email.toLowerCase();
 
-    // Check for existing active subscription
-    const { data: existing } = await supabase
-      .from("news_subscribers")
-      .select("id, unsubscribed_at")
-      .eq("email", email.toLowerCase())
-      .maybeSingle();
+    // Use upsert with on_conflict to prevent race condition
+    // If a unique constraint exists on email, this will handle duplicates atomically
+    const { error } = await supabase.from("news_subscribers").upsert(
+      {
+        email: normalizedEmail,
+        unsubscribed_at: null,
+        subscribed_at: new Date().toISOString(),
+      },
+      {
+        onConflict: "email",
+      }
+    );
 
-    if (existing && !existing.unsubscribed_at) {
-      // Already subscribed — return success silently to avoid email enumeration
-      return NextResponse.json({ success: true });
-    }
+    if (error) {
+      // If upsert not supported, fall back to check-then-act pattern
+      if (error.message.includes("onConflict")) {
+        const { data: existing } = await supabase
+          .from("news_subscribers")
+          .select("id, unsubscribed_at")
+          .eq("email", normalizedEmail)
+          .maybeSingle();
 
-    if (existing && existing.unsubscribed_at) {
-      // Re-subscribe
-      const { error } = await supabase
-        .from("news_subscribers")
-        .update({ unsubscribed_at: null, subscribed_at: new Date().toISOString() })
-        .eq("id", existing.id);
-      if (error) throw error;
-    } else {
-      const { error } = await supabase
-        .from("news_subscribers")
-        .insert({ email: email.toLowerCase() });
-      if (error) throw error;
+        if (existing && !existing.unsubscribed_at) {
+          // Already subscribed
+          return NextResponse.json({ success: true });
+        }
+
+        if (existing && existing.unsubscribed_at) {
+          // Re-subscribe
+          const { error: updateError } = await supabase
+            .from("news_subscribers")
+            .update({
+              unsubscribed_at: null,
+              subscribed_at: new Date().toISOString(),
+            })
+            .eq("id", existing.id);
+          if (updateError) throw updateError;
+        } else {
+          const { error: insertError } = await supabase
+            .from("news_subscribers")
+            .insert({ email: normalizedEmail });
+          if (insertError) throw insertError;
+        }
+      } else {
+        throw error;
+      }
     }
 
     return NextResponse.json({ success: true });
