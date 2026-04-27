@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { safeJsonParse, safeAt } from "@/lib/safety";
+import MarkdownRenderer from "@/components/news/MarkdownRenderer";
 
 interface Article {
   id: string;
@@ -63,9 +64,12 @@ export default function NewsPage() {
   // Verified password stored in memory only (not in the bundle or localStorage)
   const verifiedPasswordRef = useRef<string>("");
   const [newArticle, setNewArticle] = useState<NewArticleForm>(emptyForm());
+  const articleBodyRef = useRef<HTMLTextAreaElement | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [publishing, setPublishing] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [showMarkdownPreview, setShowMarkdownPreview] = useState(false);
   const [subscribing, setSubscribing] = useState(false);
 
   // Load articles on mount (promise chain so setState is in callbacks, not effect body)
@@ -208,6 +212,49 @@ export default function NewsPage() {
       setArticles((prev) => prev.filter((a) => a.id !== id));
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to delete article");
+    }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = safeAt(e.target.files, 0);
+    if (!file) return;
+    if (!verifiedPasswordRef.current) {
+      alert("Please log in again before uploading images.");
+      return;
+    }
+
+    setUploadingImage(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("adminPassword", verifiedPasswordRef.current);
+
+      const res = await fetch("/api/news/images", {
+        method: "POST",
+        body: formData,
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error((body as { error?: string }).error || "Image upload failed");
+      }
+      const payload = (await res.json()) as { markdown: string };
+      const textarea = articleBodyRef.current;
+      if (!textarea) {
+        setNewArticle((prev) => ({ ...prev, body: `${prev.body}\n\n${payload.markdown}`.trim() }));
+      } else {
+        const start = textarea.selectionStart ?? newArticle.body.length;
+        const end = textarea.selectionEnd ?? start;
+        const before = newArticle.body.slice(0, start);
+        const after = newArticle.body.slice(end);
+        const insert =
+          before && !before.endsWith("\n") ? `\n\n${payload.markdown}\n\n` : `${payload.markdown}\n\n`;
+        setNewArticle({ ...newArticle, body: `${before}${insert}${after}`.trimEnd() });
+      }
+      e.target.value = "";
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Image upload failed");
+    } finally {
+      setUploadingImage(false);
     }
   };
 
@@ -414,13 +461,44 @@ export default function NewsPage() {
               <div className="form-group">
                 <label>Body *</label>
                 <textarea
+                  ref={articleBodyRef}
                   value={newArticle.body}
                   onChange={(e) => setNewArticle({ ...newArticle, body: e.target.value })}
-                  placeholder="Article content (use paragraph breaks)"
+                  placeholder="Article content in Markdown"
                   rows={12}
                   required
                 />
               </div>
+
+              <div className="form-group">
+                <label>Upload Image</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  disabled={uploadingImage}
+                />
+                <p style={{ opacity: 0.65, fontSize: "0.8rem", marginTop: "0.5rem" }}>
+                  {uploadingImage
+                    ? "Uploading image..."
+                    : "Uploads image and inserts Markdown at cursor location."}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{ width: "100%", marginBottom: "1rem" }}
+                onClick={() => setShowMarkdownPreview((prev) => !prev)}
+              >
+                {showMarkdownPreview ? "Hide Markdown Preview" : "Show Markdown Preview"}
+              </button>
+
+              {showMarkdownPreview && (
+                <div className="article-body markdown-preview">
+                  <MarkdownRenderer markdown={newArticle.body || "_Nothing to preview yet._"} />
+                </div>
+              )}
 
               <button
                 type="submit"
@@ -620,9 +698,7 @@ export default function NewsPage() {
           </div>
 
           <div className="article-body">
-            {selectedArticle.body.split("\n\n").map((para, i) => (
-              <p key={i}>{para}</p>
-            ))}
+            <MarkdownRenderer markdown={selectedArticle.body} />
           </div>
 
           <div className="cta-section" style={{ marginTop: "3rem" }}>
