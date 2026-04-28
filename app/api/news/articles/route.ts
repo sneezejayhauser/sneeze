@@ -1,35 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-import { verifyPassword, validateArticleBody, sanitizeText } from "@/lib/validation";
-import { NewsArticleSchema } from "@/lib/types";
-
-function getServiceClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !serviceRoleKey) {
-    throw new Error("Supabase credentials not configured");
-  }
-  return createClient(url, serviceRoleKey, {
-    auth: { persistSession: false },
-  });
-}
-
-function getAnonClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey =
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !anonKey) {
-    throw new Error("Supabase credentials not configured");
-  }
-  return createClient(url, anonKey, {
-    auth: { persistSession: false },
-  });
-}
+import { verifyPassword, validateArticleBody } from "@/lib/validation";
+import { getNewsAnonClient, getNewsServiceClient } from "@/lib/news/server";
 
 export async function GET() {
   try {
-    const supabase = getAnonClient();
+    const supabase = getNewsAnonClient();
     const { data, error } = await supabase
       .from("news_articles")
       .select("*")
@@ -61,7 +36,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: bodyValidation.error }, { status: 400 });
     }
 
-    const supabase = getServiceClient();
+    const supabase = getNewsServiceClient();
     const { data, error } = await supabase
       .from("news_articles")
       .insert({

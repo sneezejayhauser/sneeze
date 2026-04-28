@@ -1,13 +1,40 @@
 import { createClient } from "@supabase/supabase-js";
 import { verifyPassword } from "@/lib/validation";
 
+function resolveSupabaseUrl() {
+  return process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL;
+}
+
+function resolveSupabaseServiceKey() {
+  return process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY;
+}
+
+function resolveSupabaseAnonKey() {
+  return (
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
+    process.env.SUPABASE_ANON_KEY
+  );
+}
+
 export function getNewsServiceClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const url = resolveSupabaseUrl();
+  const serviceRoleKey = resolveSupabaseServiceKey();
   if (!url || !serviceRoleKey) {
     throw new Error("Supabase credentials not configured");
   }
   return createClient(url, serviceRoleKey, {
+    auth: { persistSession: false },
+  });
+}
+
+export function getNewsAnonClient() {
+  const url = resolveSupabaseUrl();
+  const anonKey = resolveSupabaseAnonKey();
+  if (!url || !anonKey) {
+    throw new Error("Supabase credentials not configured");
+  }
+  return createClient(url, anonKey, {
     auth: { persistSession: false },
   });
 }

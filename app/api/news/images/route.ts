@@ -1,19 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 import { verifyPassword } from "@/lib/validation";
+import { getNewsServiceClient } from "@/lib/news/server";
 
 const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
-
-function getServiceClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !serviceRoleKey) {
-    throw new Error("Supabase credentials not configured");
-  }
-  return createClient(url, serviceRoleKey, {
-    auth: { persistSession: false },
-  });
-}
 
 function sanitizeFileName(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9._-]/g, "-");
@@ -42,7 +31,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Image exceeds 5MB limit" }, { status: 400 });
     }
 
-    const supabase = getServiceClient();
+    const supabase = getNewsServiceClient();
     const bucket = process.env.NEWS_IMAGES_BUCKET ?? "news-images";
     const { data: bucketData } = await supabase.storage.getBucket(bucket);
     if (!bucketData) {
