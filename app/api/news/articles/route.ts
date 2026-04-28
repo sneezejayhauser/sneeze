@@ -50,7 +50,6 @@ export async function POST(request: NextRequest) {
         related_ids: [],
         generation_source: "human",
         fact_check_status: "verified",
-        editor_approved_at: new Date().toISOString(),
       })
       .select()
       .single();
