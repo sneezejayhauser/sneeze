@@ -26,6 +26,13 @@ Go to your Vercel project → **Settings → Environment Variables** and add the
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | *(anon key)* | Already set if chat was configured. |
 | `SUPABASE_SERVICE_ROLE_KEY` | *(service role key)* | **Server-side only.** Never expose to clients. |
 | `NEWS_ADMIN_PASSWORD` | `<YOUR_STRONG_PASSWORD>` | Password for the Signal admin panel. Must be set to a strong, unique value. |
+| `OPENAI_API_KEY` | *(your OpenAI-compatible key)* | Used to generate AI article drafts and weekly newsletter drafts. |
+| `AI_BASE_URL` | `https://api.openai.com/v1` | Optional override for OpenAI-compatible providers. |
+| `AI_MODEL` | `gpt-4o-mini` | Optional model override for draft generation. |
+| `RESEND_API_KEY` | *(Resend API key)* | Required to send approved newsletter issues to subscribers. |
+| `NEWSLETTER_FROM_EMAIL` | `Signal <news@yourdomain.com>` | Sender address for newsletter sends. |
+| `NEXT_PUBLIC_SITE_URL` | `https://news.cjhauser.me` | Used by the weekly cron route for internal API invocation. |
+| `CRON_SECRET` | *(random long secret)* | Bearer token used by Vercel cron to authorize weekly generation route. |
 
 > **Note:** `SUPABASE_SERVICE_ROLE_KEY` and `NEWS_ADMIN_PASSWORD` must **not** be prefixed with `NEXT_PUBLIC_` — they are server-side only.
 
@@ -69,6 +76,8 @@ Push (or trigger a redeploy) from the Vercel dashboard. The new `app/news/` rout
 - **Email subscriptions** go through `/api/news/subscribe` which uses the service role key to write to `news_subscribers`. Duplicate emails are handled gracefully.
 - **Dark mode** is still stored in `localStorage` (intentional).
 - **Admin panel** is accessible at `news.cjhauser.me/#admin` with the password configured in `NEWS_ADMIN_PASSWORD`.
+- **AI Draft Assistant** can generate article drafts and fact-check reminders into the admin form.
+- **Weekly Newsletter** drafts are generated from the previous 7 days of published articles and require manual approval before send.
 
 ---
 
