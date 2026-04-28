@@ -30,6 +30,27 @@ interface AiCompletionResponse {
   }>;
 }
 
+interface AiResponsesApiResponse {
+  output?: Array<{
+    content?: Array<{
+      type?: string;
+      text?: string;
+    }>;
+  }>;
+}
+
+function buildAiEndpointCandidates(baseUrlInput: string): string[] {
+  const baseUrl = baseUrlInput.replace(/\/$/, "");
+
+  if (baseUrl.endsWith("/chat/completions") || baseUrl.endsWith("/responses")) {
+    return [baseUrl];
+  }
+
+  const chatPath = baseUrl.match(/\/v\d+$/) ? `${baseUrl}/chat/completions` : `${baseUrl}/v1/chat/completions`;
+  const responsesPath = baseUrl.match(/\/v\d+$/) ? `${baseUrl}/responses` : `${baseUrl}/v1/responses`;
+  return [chatPath, responsesPath];
+}
+
 export async function generateNewsAiText(messages: AiMessage[]): Promise<string> {
   const apiKey =
     process.env.OPENAI_API_KEY ??
@@ -42,34 +63,61 @@ export async function generateNewsAiText(messages: AiMessage[]): Promise<string>
     );
   }
 
-  const baseUrl = (process.env.AI_BASE_URL ?? process.env.API_BASE_URL ?? "https://api.openai.com/v1").replace(
-    /\/$/,
-    "",
-  );
+  const baseUrl = process.env.AI_BASE_URL ?? process.env.API_BASE_URL ?? "https://api.openai.com/v1";
   const model = process.env.AI_MODEL ?? "gpt-4o-mini";
+  const endpoints = buildAiEndpointCandidates(baseUrl);
+  let lastError = "Unknown AI error";
 
-  const response = await fetch(`${baseUrl}/chat/completions`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model,
-      temperature: 0.3,
-      messages,
-    }),
-  });
+  for (const endpoint of endpoints) {
+    const isResponsesApi = endpoint.endsWith("/responses");
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(
+        isResponsesApi
+          ? {
+              model,
+              temperature: 0.3,
+              input: messages.map((message) => ({
+                role: message.role,
+                content: [{ type: "input_text", text: message.content }],
+              })),
+            }
+          : {
+              model,
+              temperature: 0.3,
+              messages,
+            },
+      ),
+    });
 
-  if (!response.ok) {
-    const payload = await response.text();
-    throw new Error(`AI request failed (${response.status}): ${payload}`);
+    if (!response.ok) {
+      const payload = await response.text();
+      lastError = `AI request failed (${response.status}) on ${endpoint}: ${payload}`;
+      continue;
+    }
+
+    if (isResponsesApi) {
+      const payload = (await response.json()) as AiResponsesApiResponse;
+      const text = payload.output
+        ?.flatMap((item) => item.content ?? [])
+        .find((part) => part.type === "output_text" && typeof part.text === "string")
+        ?.text?.trim();
+
+      if (text) return text;
+      lastError = `AI response was empty on ${endpoint}`;
+      continue;
+    }
+
+    const payload = (await response.json()) as AiCompletionResponse;
+    const text = payload.choices?.[0]?.message?.content?.trim();
+    if (text) return text;
+
+    lastError = `AI response was empty on ${endpoint}`;
   }
 
-  const payload = (await response.json()) as AiCompletionResponse;
-  const text = payload.choices?.[0]?.message?.content?.trim();
-  if (!text) {
-    throw new Error("AI response was empty");
-  }
-  return text;
+  throw new Error(lastError);
 }
