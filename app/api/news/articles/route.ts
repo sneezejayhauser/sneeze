@@ -49,7 +49,6 @@ export async function POST(request: NextRequest) {
         body: articleBody,
         related_ids: [],
         generation_source: "human",
-        fact_check_status: "verified",
       })
       .select()
       .single();
