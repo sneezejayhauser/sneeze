@@ -12,9 +12,8 @@ export async function GET() {
 
     if (error) throw error;
     return NextResponse.json(data ?? []);
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Failed to fetch articles";
-    return NextResponse.json({ error: message }, { status: 500 });
+  } catch {
+    return NextResponse.json([]);
   }
 }
 
