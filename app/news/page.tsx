@@ -52,14 +52,10 @@ interface NewsletterIssue {
   created_at: string;
 }
 
-const emptyForm = (): NewArticleForm => ({
+const emptyForm = (date: string): NewArticleForm => ({
   title: "",
   category: "Essay",
-  date: new Date().toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  }),
+  date,
   excerpt: "",
   tags: "",
   author: "Editorial Team",
@@ -76,26 +72,24 @@ const emptyAiDraftRequest = (): AiDraftRequest => ({
 });
 
 export default function NewsPage() {
+  const defaultArticleDate = new Date().toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
   const [currentView, setCurrentView] = useState<"home" | "article" | "login" | "admin">("home");
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    if (typeof window === "undefined") return true;
-    const saved = localStorage.getItem("signal-darkMode");
-    return safeJsonParse(saved, true) as boolean;
-  });
+  const [isDarkMode, setIsDarkMode] = useState(true);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [email, setEmail] = useState("");
   const [emailSuccess, setEmailSuccess] = useState(false);
   const [articles, setArticles] = useState<Article[]>([]);
-  const [isLoggedIn, setIsLoggedIn] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return !!localStorage.getItem("signal-admin-logged-in");
-  });
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [adminPassword, setAdminPassword] = useState("");
   // Verified password stored in memory only (not in the bundle or localStorage)
   const verifiedPasswordRef = useRef<string>("");
-  const [newArticle, setNewArticle] = useState<NewArticleForm>(emptyForm());
+  const [newArticle, setNewArticle] = useState<NewArticleForm>(emptyForm(defaultArticleDate));
   const articleBodyRef = useRef<HTMLTextAreaElement | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -131,8 +125,19 @@ export default function NewsPage() {
 
   // Initialize view based on hash on client-side only
   useEffect(() => {
+    const savedDarkMode = safeJsonParse(localStorage.getItem("signal-darkMode"), true);
+    const hasAdminSession = !!localStorage.getItem("signal-admin-logged-in");
+    queueMicrotask(() => {
+      if (typeof savedDarkMode === "boolean") {
+        setIsDarkMode(savedDarkMode);
+      }
+      if (hasAdminSession) {
+        setIsLoggedIn(true);
+      }
+    });
+
     if (window.location.hash === "#admin") {
-      if (localStorage.getItem("signal-admin-logged-in")) {
+      if (hasAdminSession) {
         setCurrentView("admin");
       } else {
         setCurrentView("login");
@@ -242,7 +247,7 @@ export default function NewsPage() {
         const data: Article[] = await refreshRes.json();
         setArticles(data);
       }
-      setNewArticle(emptyForm());
+      setNewArticle(emptyForm(defaultArticleDate));
       alert("Article published!");
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to publish article");
