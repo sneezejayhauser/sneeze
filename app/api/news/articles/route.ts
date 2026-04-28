@@ -48,7 +48,6 @@ export async function POST(request: NextRequest) {
         read_time: read_time ?? "5 min",
         body: articleBody,
         related_ids: [],
-        generation_source: "human",
       })
       .select()
       .single();
