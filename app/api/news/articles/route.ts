@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyPassword, validateArticleBody } from "@/lib/validation";
-import { getNewsAnonClient, getNewsServiceClient } from "@/lib/news/server";
+import { extractErrorMessage, getNewsAnonClient, getNewsServiceClient } from "@/lib/news/server";
 
 export async function GET() {
   try {
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
     if (error) throw error;
     return NextResponse.json(data, { status: 201 });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Failed to publish article";
+    const message = extractErrorMessage(err, "Failed to publish article");
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

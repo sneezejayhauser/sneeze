@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getNewsServiceClient, isValidNewsAdminPassword } from "@/lib/news/server";
+import { extractErrorMessage, getNewsServiceClient, isValidNewsAdminPassword } from "@/lib/news/server";
 
 interface IssuePatchBody {
   adminPassword?: string;
@@ -45,7 +45,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     if (error) throw error;
     return NextResponse.json(data);
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Failed to update newsletter issue";
+    const message = extractErrorMessage(err, "Failed to update newsletter issue");
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

@@ -1,6 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
 import { verifyPassword } from "@/lib/validation";
 
+const SUPABASE_REQUEST_TIMEOUT_MS = 8000;
+
 function resolveSupabaseUrl() {
   return process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL;
 }
@@ -17,6 +19,12 @@ function resolveSupabaseAnonKey() {
   );
 }
 
+function fetchWithTimeout(input: RequestInfo | URL, init?: RequestInit) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), SUPABASE_REQUEST_TIMEOUT_MS);
+  return fetch(input, { ...init, signal: controller.signal }).finally(() => clearTimeout(timer));
+}
+
 export function getNewsServiceClient() {
   const url = resolveSupabaseUrl();
   const serviceRoleKey = resolveSupabaseServiceKey();
@@ -25,6 +33,7 @@ export function getNewsServiceClient() {
   }
   return createClient(url, serviceRoleKey, {
     auth: { persistSession: false },
+    global: { fetch: fetchWithTimeout },
   });
 }
 
@@ -36,7 +45,20 @@ export function getNewsAnonClient() {
   }
   return createClient(url, anonKey, {
     auth: { persistSession: false },
+    global: { fetch: fetchWithTimeout },
   });
+}
+
+export function extractErrorMessage(err: unknown, fallback: string): string {
+  if (err instanceof Error && err.message) return err.message;
+  if (err && typeof err === "object") {
+    const candidate = err as { message?: unknown; details?: unknown; hint?: unknown };
+    if (typeof candidate.message === "string" && candidate.message) return candidate.message;
+    if (typeof candidate.details === "string" && candidate.details) return candidate.details;
+    if (typeof candidate.hint === "string" && candidate.hint) return candidate.hint;
+  }
+  if (typeof err === "string" && err) return err;
+  return fallback;
 }
 
 export function isValidNewsAdminPassword(provided: unknown): boolean {

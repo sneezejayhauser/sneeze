@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyPassword } from "@/lib/validation";
-import { getNewsServiceClient } from "@/lib/news/server";
+import { extractErrorMessage, getNewsServiceClient } from "@/lib/news/server";
 
 const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
 
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
       markdown: `![${alt}](${publicUrlData.publicUrl})`,
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Failed to upload image";
+    const message = extractErrorMessage(err, "Failed to upload image");
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

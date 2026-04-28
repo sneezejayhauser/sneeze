@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { validateEmail } from "@/lib/validation";
-import { getNewsServiceClient } from "@/lib/news/server";
+import { extractErrorMessage, getNewsServiceClient } from "@/lib/news/server";
 
 export async function POST(request: NextRequest) {
   try {
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Failed to subscribe";
+    const message = extractErrorMessage(err, "Failed to subscribe");
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

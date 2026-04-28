@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateNewsAiText, isValidNewsAdminPassword } from "@/lib/news/server";
+import { extractErrorMessage, generateNewsAiText, isValidNewsAdminPassword } from "@/lib/news/server";
 
 interface DraftRequestBody {
   adminPassword?: string;
@@ -72,7 +72,7 @@ ${references.length ? references.map((ref, i) => `${i + 1}. ${ref}`).join("\n") 
       requiresHumanApproval: true,
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Failed to generate draft";
+    const message = extractErrorMessage(err, "Failed to generate draft");
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

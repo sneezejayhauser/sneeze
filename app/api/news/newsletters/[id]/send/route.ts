@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getNewsServiceClient, isValidNewsAdminPassword } from "@/lib/news/server";
+import { extractErrorMessage, getNewsServiceClient, isValidNewsAdminPassword } from "@/lib/news/server";
 
 async function sendWithResend(subject: string, html: string, recipients: string[]) {
   const resendApiKey = process.env.RESEND_API_KEY;
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
 
     return NextResponse.json(sentIssue);
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Failed to send newsletter";
+    const message = extractErrorMessage(err, "Failed to send newsletter");
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

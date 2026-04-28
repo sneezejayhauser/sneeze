@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { extractErrorMessage } from "@/lib/news/server";
 
 export async function POST(request: NextRequest) {
   try {
@@ -35,7 +36,7 @@ export async function POST(request: NextRequest) {
     }
     return NextResponse.json(payload);
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Failed to run weekly newsletter job";
+    const message = extractErrorMessage(err, "Failed to run weekly newsletter job");
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateNewsAiText, getNewsServiceClient, isValidNewsAdminPassword } from "@/lib/news/server";
+import { extractErrorMessage, generateNewsAiText, getNewsServiceClient, isValidNewsAdminPassword } from "@/lib/news/server";
 
 interface ArticleRow {
   id: string;
@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
     if (insertError) throw insertError;
     return NextResponse.json(issue, { status: 201 });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Failed to generate newsletter issue";
+    const message = extractErrorMessage(err, "Failed to generate newsletter issue");
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

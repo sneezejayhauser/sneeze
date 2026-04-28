@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyPassword, validateUUID } from "@/lib/validation";
-import { getNewsServiceClient } from "@/lib/news/server";
+import { extractErrorMessage, getNewsServiceClient } from "@/lib/news/server";
 
 export async function DELETE(
   request: NextRequest,
@@ -37,7 +37,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Failed to delete article";
+    const message = extractErrorMessage(err, "Failed to delete article");
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
