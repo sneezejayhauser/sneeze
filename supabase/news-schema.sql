@@ -13,11 +13,18 @@ CREATE TABLE IF NOT EXISTS public.news_articles (
   body         TEXT NOT NULL,
   author       TEXT NOT NULL DEFAULT 'Editorial Team',
   read_time    TEXT NOT NULL DEFAULT '5 min',
+  generation_source TEXT NOT NULL DEFAULT 'human',
+  fact_check_status TEXT NOT NULL DEFAULT 'verified',
+  editor_approved_at TIMESTAMPTZ,
   tags         TEXT[] NOT NULL DEFAULT '{}',
   related_ids  UUID[] NOT NULL DEFAULT '{}',
   created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE public.news_articles ADD COLUMN IF NOT EXISTS generation_source TEXT NOT NULL DEFAULT 'human';
+ALTER TABLE public.news_articles ADD COLUMN IF NOT EXISTS fact_check_status TEXT NOT NULL DEFAULT 'verified';
+ALTER TABLE public.news_articles ADD COLUMN IF NOT EXISTS editor_approved_at TIMESTAMPTZ;
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- news_subscribers table
@@ -30,16 +37,43 @@ CREATE TABLE IF NOT EXISTS public.news_subscribers (
 );
 
 -- ─────────────────────────────────────────────────────────────────────────────
+-- newsletter_issues table
+-- ─────────────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.newsletter_issues (
+  id                 UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  week_start         DATE NOT NULL,
+  week_end           DATE NOT NULL,
+  status             TEXT NOT NULL DEFAULT 'draft',
+  subject            TEXT NOT NULL,
+  preheader          TEXT NOT NULL DEFAULT '',
+  intro              TEXT NOT NULL DEFAULT '',
+  highlights         JSONB NOT NULL DEFAULT '[]'::jsonb,
+  closing            TEXT NOT NULL DEFAULT '',
+  html               TEXT NOT NULL,
+  text               TEXT NOT NULL,
+  source_article_ids UUID[] NOT NULL DEFAULT '{}',
+  ai_model           TEXT,
+  approved_at        TIMESTAMPTZ,
+  sent_at            TIMESTAMPTZ,
+  sent_count         INTEGER NOT NULL DEFAULT 0,
+  created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at         TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- ─────────────────────────────────────────────────────────────────────────────
 -- Indexes
 -- ─────────────────────────────────────────────────────────────────────────────
 CREATE INDEX IF NOT EXISTS idx_news_articles_created_at  ON public.news_articles(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_news_subscribers_email    ON public.news_subscribers(email);
+CREATE INDEX IF NOT EXISTS idx_newsletter_issues_created_at ON public.newsletter_issues(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_newsletter_issues_week_range ON public.newsletter_issues(week_start, week_end);
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Row Level Security
 -- ─────────────────────────────────────────────────────────────────────────────
 ALTER TABLE public.news_articles    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.news_subscribers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.newsletter_issues ENABLE ROW LEVEL SECURITY;
 
 -- Articles: public read, no client-side writes (writes go through service role via API)
 CREATE POLICY "Anyone can read articles"
@@ -48,6 +82,7 @@ CREATE POLICY "Anyone can read articles"
 
 -- Subscribers: no client-side access (all writes go through service role via API)
 -- (No policies needed; service role bypasses RLS)
+-- Newsletter issues: no client-side access (all writes go through service role via API)
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Auto-update updated_at on news_articles
@@ -63,6 +98,11 @@ $$ LANGUAGE plpgsql;
 DROP TRIGGER IF EXISTS news_articles_updated_at ON public.news_articles;
 CREATE TRIGGER news_articles_updated_at
   BEFORE UPDATE ON public.news_articles
+  FOR EACH ROW EXECUTE FUNCTION public.news_update_updated_at();
+
+DROP TRIGGER IF EXISTS newsletter_issues_updated_at ON public.newsletter_issues;
+CREATE TRIGGER newsletter_issues_updated_at
+  BEFORE UPDATE ON public.newsletter_issues
   FOR EACH ROW EXECUTE FUNCTION public.news_update_updated_at();
 
 -- ─────────────────────────────────────────────────────────────────────────────

@@ -84,7 +84,7 @@ After DNS propagates, Vercel will automatically provision a TLS certificate for 
 Browser: https://projects.cjhauser.me/
          │
          ▼
-   Next.js Middleware (middleware.ts)
+   Next.js Proxy (proxy.ts)
          │  reads `host` header → "projects.cjhauser.me"
          │  getSubdomainFromHost() → "projects"
          │

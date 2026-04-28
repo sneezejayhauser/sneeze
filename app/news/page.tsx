@@ -15,6 +15,9 @@ interface Article {
   read_time: string;
   body: string;
   related_ids: string[];
+  generation_source?: string;
+  fact_check_status?: string;
+  editor_approved_at?: string | null;
 }
 
 interface NewArticleForm {
@@ -26,6 +29,27 @@ interface NewArticleForm {
   author: string;
   read_time: string;
   body: string;
+}
+
+interface AiDraftRequest {
+  topic: string;
+  audience: string;
+  tone: string;
+  length: "short" | "medium" | "long";
+  references: string;
+}
+
+interface NewsletterIssue {
+  id: string;
+  week_start: string;
+  week_end: string;
+  status: "draft" | "approved" | "sent";
+  subject: string;
+  preheader: string;
+  html: string;
+  text: string;
+  sent_count: number;
+  created_at: string;
 }
 
 const emptyForm = (): NewArticleForm => ({
@@ -41,6 +65,14 @@ const emptyForm = (): NewArticleForm => ({
   author: "Editorial Team",
   read_time: "5 min",
   body: "",
+});
+
+const emptyAiDraftRequest = (): AiDraftRequest => ({
+  topic: "",
+  audience: "General readers",
+  tone: "Crisp editorial",
+  length: "medium",
+  references: "",
 });
 
 export default function NewsPage() {
@@ -71,6 +103,11 @@ export default function NewsPage() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [showMarkdownPreview, setShowMarkdownPreview] = useState(false);
   const [subscribing, setSubscribing] = useState(false);
+  const [aiDraftRequest, setAiDraftRequest] = useState<AiDraftRequest>(emptyAiDraftRequest());
+  const [generatingDraft, setGeneratingDraft] = useState(false);
+  const [factChecks, setFactChecks] = useState<string[]>([]);
+  const [newsletterIssues, setNewsletterIssues] = useState<NewsletterIssue[]>([]);
+  const [generatingNewsletter, setGeneratingNewsletter] = useState(false);
 
   // Load articles on mount (promise chain so setState is in callbacks, not effect body)
   useEffect(() => {
@@ -129,6 +166,20 @@ export default function NewsPage() {
       document.body.classList.remove("light-mode");
     };
   }, [isDarkMode]);
+
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    fetch("/api/news/newsletters")
+      .then((res) => (res.ok ? res.json() : []))
+      .then((issues) => {
+        if (Array.isArray(issues)) {
+          setNewsletterIssues(issues as NewsletterIssue[]);
+        }
+      })
+      .catch(() => {
+        // no-op: admin can still publish articles even if issue history fails to load
+      });
+  }, [isLoggedIn]);
 
   const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -256,6 +307,116 @@ export default function NewsPage() {
     } finally {
       setUploadingImage(false);
     }
+  };
+
+  const handleGenerateAiDraft = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!verifiedPasswordRef.current) {
+      alert("Please log in again before generating drafts.");
+      return;
+    }
+    if (!aiDraftRequest.topic.trim()) {
+      alert("Please provide a topic.");
+      return;
+    }
+
+    setGeneratingDraft(true);
+    try {
+      const res = await fetch("/api/news/articles/draft", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          adminPassword: verifiedPasswordRef.current,
+          topic: aiDraftRequest.topic,
+          audience: aiDraftRequest.audience,
+          tone: aiDraftRequest.tone,
+          length: aiDraftRequest.length,
+          references: aiDraftRequest.references
+            .split("\n")
+            .map((line) => line.trim())
+            .filter(Boolean),
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error((body as { error?: string }).error || "Failed to generate AI draft");
+      }
+      const payload = (await res.json()) as {
+        article: Partial<NewArticleForm> & { tags?: string[] };
+        factChecks?: string[];
+      };
+
+      setFactChecks(Array.isArray(payload.factChecks) ? payload.factChecks : []);
+      setNewArticle((prev) => ({
+        ...prev,
+        title: payload.article.title ?? prev.title,
+        category: payload.article.category ?? prev.category,
+        excerpt: payload.article.excerpt ?? prev.excerpt,
+        body: payload.article.body ?? prev.body,
+        read_time: payload.article.read_time ?? prev.read_time,
+        tags: Array.isArray(payload.article.tags) ? payload.article.tags.join(", ") : prev.tags,
+      }));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to generate AI draft");
+    } finally {
+      setGeneratingDraft(false);
+    }
+  };
+
+  const handleGenerateWeeklyNewsletter = async () => {
+    if (!verifiedPasswordRef.current) {
+      alert("Please log in again before generating newsletter drafts.");
+      return;
+    }
+    setGeneratingNewsletter(true);
+    try {
+      const res = await fetch("/api/news/newsletters", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ adminPassword: verifiedPasswordRef.current }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error((body as { error?: string }).error || "Failed to generate newsletter");
+      }
+      const issue = (await res.json()) as NewsletterIssue;
+      setNewsletterIssues((prev) => [issue, ...prev]);
+      alert("Weekly newsletter draft generated.");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to generate newsletter");
+    } finally {
+      setGeneratingNewsletter(false);
+    }
+  };
+
+  const updateIssueStatus = async (id: string, status: NewsletterIssue["status"]) => {
+    if (!verifiedPasswordRef.current) return;
+    const res = await fetch(`/api/news/newsletters/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ adminPassword: verifiedPasswordRef.current, status }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error((body as { error?: string }).error || "Failed to update issue");
+    }
+    const updated = (await res.json()) as NewsletterIssue;
+    setNewsletterIssues((prev) => prev.map((issue) => (issue.id === id ? updated : issue)));
+  };
+
+  const handleSendIssue = async (id: string) => {
+    if (!verifiedPasswordRef.current) return;
+    const res = await fetch(`/api/news/newsletters/${id}/send`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ adminPassword: verifiedPasswordRef.current }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error((body as { error?: string }).error || "Failed to send issue");
+    }
+    const updated = (await res.json()) as NewsletterIssue;
+    setNewsletterIssues((prev) => prev.map((issue) => (issue.id === id ? updated : issue)));
   };
 
   const toggleDarkMode = () => {
@@ -396,6 +557,80 @@ export default function NewsPage() {
         </header>
 
         <div className="container" style={{ paddingTop: "10rem" }}>
+          <h1 style={{ marginBottom: "2rem" }}>AI Draft Assistant</h1>
+
+          <div className="glass-card" style={{ marginBottom: "2rem" }}>
+            <form onSubmit={handleGenerateAiDraft}>
+              <div className="form-group">
+                <label>Topic *</label>
+                <input
+                  type="text"
+                  value={aiDraftRequest.topic}
+                  onChange={(e) => setAiDraftRequest({ ...aiDraftRequest, topic: e.target.value })}
+                  placeholder="What should the draft be about?"
+                  required
+                />
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1rem" }}>
+                <div className="form-group">
+                  <label>Audience</label>
+                  <input
+                    type="text"
+                    value={aiDraftRequest.audience}
+                    onChange={(e) => setAiDraftRequest({ ...aiDraftRequest, audience: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Tone</label>
+                  <input
+                    type="text"
+                    value={aiDraftRequest.tone}
+                    onChange={(e) => setAiDraftRequest({ ...aiDraftRequest, tone: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Length</label>
+                  <select
+                    value={aiDraftRequest.length}
+                    onChange={(e) =>
+                      setAiDraftRequest({
+                        ...aiDraftRequest,
+                        length: e.target.value as AiDraftRequest["length"],
+                      })
+                    }
+                  >
+                    <option value="short">Short</option>
+                    <option value="medium">Medium</option>
+                    <option value="long">Long</option>
+                  </select>
+                </div>
+              </div>
+              <div className="form-group">
+                <label>References (one per line)</label>
+                <textarea
+                  value={aiDraftRequest.references}
+                  onChange={(e) => setAiDraftRequest({ ...aiDraftRequest, references: e.target.value })}
+                  rows={3}
+                  placeholder="Optional source links or notes for the model."
+                />
+              </div>
+              <button type="submit" className="btn btn-secondary" style={{ width: "100%" }} disabled={generatingDraft}>
+                {generatingDraft ? "Generating draft..." : "Generate Draft (Review Required)"}
+              </button>
+            </form>
+
+            {!!factChecks.length && (
+              <div style={{ marginTop: "1rem", fontSize: "0.9rem" }}>
+                <strong>Fact checks before publish:</strong>
+                <ul>
+                  {factChecks.map((check) => (
+                    <li key={check}>{check}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+
           <h1 style={{ marginBottom: "2rem" }}>Publish New Article</h1>
 
           <div className="glass-card">
@@ -509,6 +744,52 @@ export default function NewsPage() {
                 {publishing ? "Publishing..." : "Publish Article"}
               </button>
             </form>
+          </div>
+
+          <h2 style={{ marginTop: "3rem", marginBottom: "1.5rem" }}>Weekly Newsletter</h2>
+          <div className="glass-card" style={{ marginBottom: "2rem" }}>
+            <button className="btn" style={{ width: "100%", marginBottom: "1rem" }} onClick={handleGenerateWeeklyNewsletter} disabled={generatingNewsletter}>
+              {generatingNewsletter ? "Generating..." : "Generate Weekly Draft"}
+            </button>
+            <p style={{ opacity: 0.75, fontSize: "0.85rem" }}>
+              Drafts are generated from articles published in the last 7 days. Approve before sending.
+            </p>
+
+            <div style={{ display: "grid", gap: "1rem", marginTop: "1rem" }}>
+              {newsletterIssues.map((issue) => (
+                <div key={issue.id} style={{ border: "1px solid rgba(255,255,255,0.12)", borderRadius: "8px", padding: "1rem" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: "0.5rem", flexWrap: "wrap" }}>
+                    <strong>{issue.subject}</strong>
+                    <span style={{ textTransform: "uppercase", opacity: 0.8, fontSize: "0.75rem" }}>{issue.status}</span>
+                  </div>
+                  <p style={{ marginTop: "0.5rem", marginBottom: "0.5rem", opacity: 0.85 }}>{issue.preheader}</p>
+                  <p style={{ fontSize: "0.8rem", opacity: 0.7, marginBottom: "0.75rem" }}>
+                    Week {issue.week_start} → {issue.week_end}
+                    {issue.status === "sent" ? ` • Sent to ${issue.sent_count} subscribers` : ""}
+                  </p>
+                  <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                    {issue.status === "draft" && (
+                      <button className="btn btn-secondary" onClick={() => updateIssueStatus(issue.id, "approved")}>
+                        Approve
+                      </button>
+                    )}
+                    {issue.status === "approved" && (
+                      <button
+                        className="btn"
+                        onClick={() =>
+                          handleSendIssue(issue.id).catch((err) =>
+                            alert(err instanceof Error ? err.message : "Failed to send issue")
+                          )
+                        }
+                      >
+                        Send
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {!newsletterIssues.length && <p style={{ opacity: 0.75 }}>No newsletter issues yet.</p>}
+            </div>
           </div>
 
           <h2 style={{ marginTop: "3rem", marginBottom: "1.5rem" }}>Published Articles</h2>

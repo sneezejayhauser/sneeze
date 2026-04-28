@@ -1,6 +1,6 @@
-// Safe array access that returns undefined instead of accessing out of bounds
-export function safeAt<T>(arr: T[], index: number): T | undefined {
-  if (!Array.isArray(arr) || index < 0 || index >= arr.length) {
+// Safe array-like access that returns undefined instead of accessing out of bounds
+export function safeAt<T>(arr: ArrayLike<T> | null | undefined, index: number): T | undefined {
+  if (!arr || index < 0 || index >= arr.length) {
     return undefined;
   }
   return arr[index];
