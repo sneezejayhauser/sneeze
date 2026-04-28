@@ -31,12 +31,21 @@ interface AiCompletionResponse {
 }
 
 export async function generateNewsAiText(messages: AiMessage[]): Promise<string> {
-  const apiKey = process.env.OPENAI_API_KEY ?? process.env.AI_API_KEY;
+  const apiKey =
+    process.env.OPENAI_API_KEY ??
+    process.env.AI_API_KEY ??
+    process.env.API_KEY ??
+    process.env.OPENAIAPIKEY;
   if (!apiKey) {
-    throw new Error("OPENAI_API_KEY (or AI_API_KEY) is not configured");
+    throw new Error(
+      "AI API key is not configured. Set one of OPENAI_API_KEY, AI_API_KEY, API_KEY, or OPENAIAPIKEY",
+    );
   }
 
-  const baseUrl = (process.env.AI_BASE_URL ?? "https://api.openai.com/v1").replace(/\/$/, "");
+  const baseUrl = (process.env.AI_BASE_URL ?? process.env.API_BASE_URL ?? "https://api.openai.com/v1").replace(
+    /\/$/,
+    "",
+  );
   const model = process.env.AI_MODEL ?? "gpt-4o-mini";
 
   const response = await fetch(`${baseUrl}/chat/completions`, {

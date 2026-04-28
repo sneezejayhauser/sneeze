@@ -26,8 +26,8 @@ Go to your Vercel project → **Settings → Environment Variables** and add the
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | *(anon key)* | Already set if chat was configured. |
 | `SUPABASE_SERVICE_ROLE_KEY` | *(service role key)* | **Server-side only.** Never expose to clients. |
 | `NEWS_ADMIN_PASSWORD` | `<YOUR_STRONG_PASSWORD>` | Password for the Signal admin panel. Must be set to a strong, unique value. |
-| `OPENAI_API_KEY` | *(your OpenAI-compatible key)* | Used to generate AI article drafts and weekly newsletter drafts. |
-| `AI_BASE_URL` | `https://api.openai.com/v1` | Optional override for OpenAI-compatible providers. |
+| `OPENAI_API_KEY` | *(your OpenAI-compatible key)* | Used to generate AI article drafts and weekly newsletter drafts. Also accepts `AI_API_KEY`, `API_KEY`, or `OPENAIAPIKEY`. |
+| `AI_BASE_URL` | `https://api.openai.com/v1` | Optional override for OpenAI-compatible providers. Also accepts `API_BASE_URL`. |
 | `AI_MODEL` | `gpt-4o-mini` | Optional model override for draft generation. |
 | `RESEND_API_KEY` | *(Resend API key)* | Required to send approved newsletter issues to subscribers. |
 | `NEWSLETTER_FROM_EMAIL` | `Signal <news@yourdomain.com>` | Sender address for newsletter sends. |
