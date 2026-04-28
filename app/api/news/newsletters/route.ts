@@ -46,6 +46,16 @@ Articles:
 ${digest}`;
 }
 
+
+function isExpectedNewsletterReadFailure(message: string) {
+  const normalized = message.toLowerCase();
+  return (
+    normalized.includes("supabase credentials not configured") ||
+    normalized.includes("permission denied") ||
+    normalized.includes("row-level security")
+  );
+}
+
 export async function GET() {
   try {
     const supabase = getNewsServiceClient();
@@ -59,6 +69,10 @@ export async function GET() {
     return NextResponse.json(data ?? []);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to fetch newsletter issues";
+    if (isExpectedNewsletterReadFailure(message)) {
+      return NextResponse.json([]);
+    }
+
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
